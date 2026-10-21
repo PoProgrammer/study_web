@@ -48,6 +48,23 @@
         .tab-btn.active { background: var(--color-blue); color: white; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3); }
         
         .info-text { font-size: 13px; color: var(--text-muted); line-height: 1.8; margin-top: 10px; }
+
+        /* استایل مدال سفارشی */
+        .custom-modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        .custom-modal {
+            background: var(--bg-card); padding: 24px; border-radius: var(--radius-md);
+            width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg); animation: modalFadeIn 0.3s ease;
+        }
+        @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .custom-modal h3 { margin-bottom: 15px; color: var(--text-main); font-size: 18px; }
+        .custom-modal p { margin-bottom: 20px; color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+        .custom-modal-buttons { display: flex; gap: 10px; justify-content: center; }
+        .custom-modal-buttons button { width: auto; padding: 10px 20px; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -57,6 +74,18 @@
         <div id="content">در حال بارگذاری...</div>
     </div>
 
+    <!-- مدال تایید سفارشی -->
+    <div id="customConfirmModal" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <h3 id="modalTitle">تایید</h3>
+            <p id="modalText"></p>
+            <div class="custom-modal-buttons">
+                <button class="primary-btn" style="background: var(--color-red);" onclick="resolveConfirm(true)">بله، مطمئنم</button>
+                <button class="secondary-btn" onclick="resolveConfirm(false)">لغو</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('user');
@@ -64,6 +93,24 @@
 
         let groupData = null;
         let currentTab = 'create';
+        let confirmResolve = null; // برای مدیریت مدال
+
+        // تابع جدید برای جایگزینی confirm
+        function showConfirm(message) {
+            return new Promise((resolve) => {
+                document.getElementById('modalText').innerText = message;
+                document.getElementById('customConfirmModal').style.display = 'flex';
+                confirmResolve = resolve;
+            });
+        }
+
+        function resolveConfirm(result) {
+            document.getElementById('customConfirmModal').style.display = 'none';
+            if (confirmResolve) {
+                confirmResolve(result);
+                confirmResolve = null;
+            }
+        }
 
         async function load() {
             document.getElementById('content').innerHTML = `<div class="box" style="text-align:center;">⏳ در حال بارگذاری...</div>`;
@@ -165,13 +212,13 @@
                 const data = await res.json();
                 
                 if (res.ok) {
-                    showToast(`✅ گروه «${name}» ساخته شد! کد: ${data.code}`, "success");
+                    showToast(`گروه «${name}» ساخته شد! کد: ${data.code}`, "success");
                     load();
                 } else {
-                    showToast("❌ " + data.detail, "error");
+                    showToast(data.detail, "error");
                 }
             } catch (e) {
-                showToast("❌ خطا در ارتباط با سرور", "error");
+                showToast("خطا در ارتباط با سرور", "error");
             }
         }
 
@@ -189,13 +236,13 @@
                 const data = await res.json();
                 
                 if (res.ok) {
-                    showToast(`✅ به گروه «${data.message}» پیوستی!`, "success");
+                    showToast(`به گروه «${data.message}» پیوستی!`, "success");
                     load();
                 } else {
-                    showToast("❌ " + data.detail, "error");
+                    showToast(data.detail, "error");
                 }
             } catch (e) {
-                showToast("❌ خطا در ارتباط با سرور", "error");
+                showToast("خطا در ارتباط با سرور", "error");
             }
         }
 
@@ -299,31 +346,34 @@
 
         function copyCode(code) {
             navigator.clipboard.writeText(code).then(() => {
-                showToast("✅ کد کپی شد!", "success");
+                showToast("کد کپی شد!", "success");
             }).catch(() => {
                 showToast("کد: " + code, "info");
             });
         }
 
         async function leaveGroup() {
-            if (!confirm("مطمئنی می‌خوای از گروه خارج بشی؟")) return;
+            let isOwner = groupData.is_owner;
+            let msg = isOwner 
+                ? "⚠️ تو مالک گروهی! اگه خارج بشی، کل گروه حذف می‌شه. مطمئنی؟" 
+                : "مطمئنی می‌خوای از گروه خارج بشی؟";
             
-            if (groupData.is_owner) {
-                if (!confirm("⚠️ تو مالک گروهی! اگه خارج بشی، کل گروه حذف می‌شه. مطمئنی؟")) return;
-            }
+            // استفاده از مدال سفارشی به جای confirm
+            const confirmed = await showConfirm(msg);
+            if (!confirmed) return;
             
             try {
                 const res = await fetch(`/api/groups/leave/${userId}`, { method: 'POST' });
                 const data = await res.json();
                 
                 if (res.ok) {
-                    showToast("✅ " + data.message, "success");
+                    showToast(data.message, "success");
                     load();
                 } else {
-                    showToast("❌ " + data.detail, "error");
+                    showToast(data.detail, "error");
                 }
             } catch (e) {
-                showToast("❌ خطا در ارتباط با سرور", "error");
+                showToast("خطا در ارتباط با سرور", "error");
             }
         }
 
@@ -399,31 +449,33 @@
                 const data = await res.json();
                 
                 if (res.ok) {
-                    showToast("✅ چالش با موفقیت ساخته شد!", "success");
+                    showToast("چالش با موفقیت ساخته شد!", "success");
                     load();
                 } else {
-                    showToast("❌ " + data.detail, "error");
+                    showToast(data.detail, "error");
                 }
             } catch (e) {
-                showToast("❌ خطا در ارتباط با سرور", "error");
+                showToast("خطا در ارتباط با سرور", "error");
             }
         }
 
         async function cancelChallenge() {
-            if (!confirm("مطمئنی می‌خوای چالش رو لغو کنی؟")) return;
+            // استفاده از مدال سفارشی به جای confirm
+            const confirmed = await showConfirm("مطمئنی می‌خوای چالش رو لغو کنی؟");
+            if (!confirmed) return;
             
             try {
                 const res = await fetch(`/api/groups/challenge/cancel/${userId}`, { method: 'POST' });
                 const data = await res.json();
                 
                 if (res.ok) {
-                    showToast("✅ چالش لغو شد", "success");
+                    showToast("چالش لغو شد", "success");
                     load();
                 } else {
-                    showToast("❌ " + data.detail, "error");
+                    showToast(data.detail, "error");
                 }
             } catch (e) {
-                showToast("❌ خطا در ارتباط با سرور", "error");
+                showToast("خطا در ارتباط با سرور", "error");
             }
         }
 
