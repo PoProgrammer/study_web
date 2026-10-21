@@ -1,0 +1,576 @@
+/* style.css */
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&display=swap');
+
+:root {
+    /* متغیرهای تم تیره (پیش‌فرض) */
+    --bg-main: #0f172a;
+    --bg-card: rgba(30, 41, 59, 0.85);
+    --bg-card-hover: rgba(51, 65, 85, 0.95);
+    --bg-input: #1e293b;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --text-light: #64748b;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 8px 25px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 15px 40px rgba(0, 0, 0, 0.4);
+    
+    /* رنگ‌های تاکیدی */
+    --color-green: #10b981;
+    --color-yellow: #fbbf24;
+    --color-blue: #0ea5e9;
+    --color-orange: #f97316;
+    --color-pink: #ec4899;
+    --color-teal: #14b8a6;
+    --color-purple: #8b5cf6;
+    --primary: #3b82f6;
+    --primary-glow: rgba(59, 130, 246, 0.4);
+    
+    --radius-lg: 24px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+    --border-focus: rgba(59, 130, 246, 0.6);
+}
+
+/* ============================================================
+   متغیرهای تم روشن
+   ============================================================ */
+body.light-mode {
+    --bg-main: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f1f5f9;
+    --bg-input: #f1f5f9;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --text-light: #94a3b8;
+    --border-color: rgba(0, 0, 0, 0.08);
+    --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 8px 25px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 15px 40px rgba(0, 0, 0, 0.1);
+    
+    --color-green: #059669;
+    --color-yellow: #d97706;
+    --color-blue: #0284c7;
+    --color-orange: #ea580c;
+    --color-pink: #db2777;
+    --color-teal: #0d9488;
+    --color-purple: #7c3aed;
+    --primary: #2563eb;
+    --border-focus: rgba(37, 99, 235, 0.4);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Vazirmatn', sans-serif;
+    background-color: var(--bg-main);
+    background-image: 
+        radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 85% 30%, rgba(249, 115, 22, 0.05) 0%, transparent 40%);
+    background-attachment: fixed;
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.4s ease, color 0.4s ease;
+    position: relative;
+    overflow-x: hidden;
+}
+
+body.light-mode {
+    background-image: 
+        radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 85% 30%, rgba(249, 115, 22, 0.02) 0%, transparent 40%);
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.bg-particles {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: -1;
+    pointer-events: none;
+}
+.particle {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    opacity: 0.15;
+    animation: floatUp 10s infinite linear;
+}
+body.light-mode .particle {
+    background: var(--color-blue); opacity: 0.1;
+}
+@keyframes floatUp {
+    0% { transform: translateY(100vh) scale(0); opacity: 0; }
+    20% { opacity: 0.2; }
+    100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+}
+
+.container {
+    width: 100%;
+    max-width: 520px;
+    padding: 24px 16px;
+    z-index: 1;
+    animation: fadeInUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   کارت‌های شیشه‌ای
+   ============================================================ */
+.box, .profile-header, .login-section, .menu-btn {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+body.light-mode .box, body.light-mode .profile-header, body.light-mode .login-section, body.light-mode .menu-btn {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================================
+   اسکرول‌بار
+   ============================================================ */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { 
+    background: linear-gradient(var(--color-blue), var(--color-teal)); 
+    border-radius: 4px; 
+}
+
+/* ============================================================
+   هدر پروفایل
+   ============================================================ */
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--bg-card);
+    padding: 24px;
+    border-radius: var(--radius-lg);
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.4s ease, border-color 0.4s ease;
+}
+
+.profile-header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--color-orange), var(--color-yellow), var(--color-green), var(--color-blue), var(--color-orange));
+    background-size: 300% 100%;
+    animation: shimmer 4s infinite linear;
+}
+
+@keyframes shimmer {
+    0% { background-position: 300% 0; }
+    100% { background-position: -300% 0; }
+}
+
+.avatar {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, var(--color-orange) 0%, var(--color-pink) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 900;
+    color: white;
+    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+    flex-shrink: 0;
+    animation: bounce 2.5s infinite ease-in-out;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+.profile-info h2 {
+    font-size: 22px;
+    margin-bottom: 8px;
+    font-weight: 900;
+    color: var(--text-main);
+}
+
+.coins-badge {
+    background: linear-gradient(135deg, var(--color-yellow), #f59e0b);
+    color: #451a03;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 900;
+    display: inline-block;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* ============================================================
+   شبکه دکمه‌های منو
+   ============================================================ */
+.menu-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.menu-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 20px 10px;
+    border-radius: var(--radius-md);
+    color: var(--text-main);
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+}
+
+.menu-btn:active {
+    transform: scale(0.95);
+}
+
+.menu-btn:nth-child(6n+1) { border-bottom: 3px solid var(--color-blue); }
+.menu-btn:nth-child(6n+2) { border-bottom: 3px solid var(--color-orange); }
+.menu-btn:nth-child(6n+3) { border-bottom: 3px solid var(--color-yellow); }
+.menu-btn:nth-child(6n+4) { border-bottom: 3px solid var(--color-purple); }
+.menu-btn:nth-child(6n+5) { border-bottom: 3px solid var(--color-green); }
+.menu-btn:nth-child(6n+6) { border-bottom: 3px solid var(--color-pink); }
+
+.menu-btn:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: var(--shadow-lg);
+    background: var(--bg-card-hover);
+}
+
+.menu-btn:hover:nth-child(6n+1) { box-shadow: 0 15px 30px rgba(14, 165, 233, 0.3); }
+.menu-btn:hover:nth-child(6n+2) { box-shadow: 0 15px 30px rgba(249, 115, 22, 0.3); }
+.menu-btn:hover:nth-child(6n+3) { box-shadow: 0 15px 30px rgba(251, 191, 36, 0.3); }
+.menu-btn:hover:nth-child(6n+4) { box-shadow: 0 15px 30px rgba(139, 92, 246, 0.3); }
+.menu-btn:hover:nth-child(6n+5) { box-shadow: 0 15px 30px rgba(16, 185, 129, 0.3); }
+.menu-btn:hover:nth-child(6n+6) { box-shadow: 0 15px 30px rgba(236, 72, 153, 0.3); }
+
+.menu-btn .icon {
+    font-size: 32px;
+    transition: transform 0.3s ease;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
+}
+
+.menu-btn:hover .icon {
+    transform: scale(1.2) rotate(-8deg);
+}
+
+/* ============================================================
+   بخش ورود و ثبت‌نام
+   ============================================================ */
+.login-section {
+    background: var(--bg-card);
+    padding: 40px 28px;
+    border-radius: var(--radius-lg);
+    text-align: center;
+    margin-top: 60px;
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.4s ease, border-color 0.4s ease;
+}
+
+.login-section::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 60%);
+    animation: rotate 10s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.login-section h1 {
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, var(--color-green), var(--color-blue), var(--color-yellow));
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 36px;
+    font-weight: 900;
+    animation: gradientShift 3s ease infinite;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.login-section p {
+    margin-bottom: 30px;
+    color: var(--text-muted);
+    font-size: 15px;
+    position: relative;
+    z-index: 1;
+}
+
+.login-section input,
+.login-section button {
+    position: relative;
+    z-index: 1;
+}
+
+/* ============================================================
+   فرم‌ها (Inputs)
+   ============================================================ */
+input[type="text"],
+input[type="number"],
+input[type="password"],
+textarea,
+select {
+    width: 100%;
+    padding: 16px 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 15px;
+    margin-bottom: 16px;
+    text-align: center;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--color-blue);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+}
+
+input::placeholder,
+textarea::placeholder { color: var(--text-light); }
+
+textarea {
+    text-align: right;
+    resize: vertical;
+    min-height: 120px;
+}
+
+/* ============================================================
+   دکمه‌های اصلی (Primary)
+   ============================================================ */
+button.primary-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+    background-size: 200% auto;
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-weight: 900;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+button.primary-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(249, 115, 22, 0.6);
+    background-position: right center;
+}
+
+button.primary-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+button.primary-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+button.primary-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s;
+}
+
+button.primary-btn:hover::before {
+    left: 100%;
+}
+
+/* ============================================================
+   دکمه‌های ثانویه و خطرناک
+   ============================================================ */
+.secondary-btn {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.secondary-btn:hover {
+    background: var(--bg-card-hover) !important;
+    border-color: var(--color-blue) !important;
+    transform: translateY(-2px) !important;
+}
+
+.danger-btn {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4) !important;
+}
+
+.danger-btn:hover {
+    box-shadow: 0 10px 30px rgba(239, 68, 68, 0.6) !important;
+}
+
+/* ============================================================
+   استایل کلی کارت‌ها (Box)
+   ============================================================ */
+.box {
+    background: var(--bg-card);
+    padding: 24px;
+    border-radius: var(--radius-md);
+    margin-bottom: 16px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: background-color 0.4s ease, border-color 0.4s ease;
+}
+
+.box:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-focus);
+}
+
+.box h3 {
+    margin-bottom: 14px;
+    font-size: 18px;
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+/* ============================================================
+   استایل تیترها
+   ============================================================ */
+h1 {
+    font-size: 28px;
+    font-weight: 900;
+    margin-bottom: 20px;
+    color: var(--text-main);
+}
+
+/* ============================================================
+   کانفتی
+   ============================================================ */
+.confetti {
+    position: absolute; width: 10px; height: 10px;
+    background-color: #f00; animation: fall 3s linear infinite;
+    z-index: 9999;
+}
+@keyframes fall {
+    0% { transform: translateY(-100vh) rotate(0deg); }
+    100% { transform: translateY(100vh) rotate(720deg); }
+}
+
+/* ============================================================
+   Toast Notification (پاپ‌آپ از بالا)
+   ============================================================ */
+.toast-container {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 9999; display: flex; flex-direction: column; gap: 10px;
+    width: 90%; max-width: 400px;
+}
+
+.toast {
+    background: var(--bg-card); color: var(--text-main);
+    padding: 15px 20px; border-radius: var(--radius-md);
+    border: 1px solid var(--border-color); box-shadow: var(--shadow-lg);
+    display: flex; flex-direction: column; gap: 10px;
+    transform: translateY(-20px); opacity: 0;
+    animation: slideDown 0.3s forwards;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    position: relative; overflow: hidden;
+}
+.toast::before {
+    content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 5px;
+    background: var(--color-blue);
+}
+.toast.success::before { background: var(--color-green); }
+.toast.error::before { background: #ef4444; }
+.toast.warning::before { background: var(--color-yellow); }
+@keyframes slideDown {
+    to { transform: translateY(0); opacity: 1; }
+}
+.toast-message { font-size: 14px; font-weight: 500; line-height: 1.5; }
+.toast-btn {
+    background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border-color);
+    padding: 8px 15px; border-radius: 8px; font-family: inherit; font-size: 13px;
+    font-weight: bold; cursor: pointer; align-self: flex-end; transition: all 0.2s;
+}
+.toast-btn:hover { background: var(--color-blue); color: white; border-color: var(--color-blue); }
+
+/* ============================================================
+   دکمه اسکرول هوشمند
+   ============================================================ */
+.scroll-toggle-btn {
+    position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px;
+    background: linear-gradient(135deg, var(--color-blue), var(--color-teal));
+    color: white; border: none; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; font-size: 24px;
+    box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4); cursor: pointer;
+    z-index: 100; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    opacity: 0; pointer-events: none; animation: bounceBtn 2s infinite ease-in-out;
+}
+.scroll-toggle-btn.visible { opacity: 1; pointer-events: auto; }
+.scroll-toggle-btn.at-top {
+    bottom: auto; top: 20px; right: 20px;
+    background: linear-gradient(135deg, var(--color-orange), var(--color-pink));
+    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4); animation: none;
+}
+@keyframes bounceBtn {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(5px); }
+}

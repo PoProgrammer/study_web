@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <style>
+        .menu-grid { grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+        .menu-btn { padding: 15px 5px; font-size: 12px; gap: 5px; position: relative; }
+        .menu-btn .icon { font-size: 24px; }
+        .badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: #ef4444;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            min-width: 18px;
+            height: 18px;
+            line-height: 18px;
+            text-align: center;
+            border-radius: 50%;
+            padding: 0 5px;
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.5);
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        .auth-tab {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            padding-bottom: 5px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .auth-tab.active {
+            color: var(--color-orange);
+            border-bottom-color: var(--color-orange);
+        }
+        
+        .auth-input {
+            width: 100%;
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-input);
+            color: var(--text-main);
+            font-family: inherit;
+            font-size: 15px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+            outline: none;
+            box-sizing: border-box;
+            text-align: left;
+            direction: ltr;
+        }
+        .auth-input:focus {
+            border-color: var(--color-blue);
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.2);
+        }
+        .auth-input::placeholder {
+            text-align: right;
+            direction: rtl;
+            color: var(--text-light);
+        }
+        
+        .brand-logo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .brand-logo svg {
+            width: 50px;
+            height: 50px;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+        }
+        .brand-logo h1 {
+            margin: 0;
+            font-size: 36px;
+            font-weight: 900;
+            background: linear-gradient(90deg, var(--color-blue), var(--color-teal));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .theme-toggle {
+            background: var(--bg-card-hover);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+        }
+        .theme-toggle:hover {
+            transform: scale(1.1) rotate(15deg);
+            border-color: var(--color-yellow);
+        }
+
+        /* استایل دکمه اسکرول */
+        .scroll-toggle-btn {
+            position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px;
+            background: linear-gradient(135deg, var(--color-blue), var(--color-teal));
+            color: white; border: none; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; font-size: 24px;
+            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4); cursor: pointer;
+            z-index: 100; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0; pointer-events: none; animation: bounceBtn 2s infinite ease-in-out;
+        }
+        .scroll-toggle-btn.visible { opacity: 1; pointer-events: auto; }
+        .scroll-toggle-btn.at-top {
+            bottom: auto; top: 20px; right: 20px;
+            background: linear-gradient(135deg, var(--color-orange), var(--color-pink));
+            box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4); animation: none;
+        }
+        @keyframes bounceBtn {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(5px); }
+        }
+
+        /* منوی انتخاب تم */
+        .theme-menu {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--bg-card); padding: 20px; border-radius: var(--radius-md);
+            border: 1px solid var(--border-color); box-shadow: var(--shadow-lg);
+            z-index: 1000; display: none; flex-direction: column; gap: 10px;
+            min-width: 220px; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+        }
+        .theme-menu-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px;
+            border-radius: 8px; background: var(--bg-input); color: var(--text-main);
+            cursor: pointer; border: 1px solid transparent; transition: all 0.2s;
+        }
+        .theme-menu-item:hover { background: var(--bg-card-hover); border-color: var(--color-blue); }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- صفحه ورود و ثبت‌نام -->
+        <div id="authScreen" class="login-section" style="display: none;">
+            
+            <div class="brand-logo">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 6.25278V19.2528M12 6.25278C10.8321 5.47686 9.24649 5 7.5 5C5.75351 5 4.16789 5.47686 3 6.25278V19.2528C4.16789 18.4769 5.75351 18 7.5 18C9.24649 18 10.8321 18.4769 12 19.2528M12 6.25278C13.1679 5.47686 14.7535 5 16.5 5C18.2465 5 19.8321 5.47686 21 6.25278V19.2528C19.8321 18.4769 18.2465 18 16.5 18C14.7535 18 13.1679 18.4769 12 19.2528" stroke="url(#paint0_linear)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="paint0_linear" x1="3" y1="12" x2="21" y2="12" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#0ea5e9"/>
+                            <stop offset="1" stop-color="#14b8a6"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <h1>اوج‌گام</h1>
+            </div>
+
+            <div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">ورود</button>
+                <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">ثبت‌نام</button>
+            </div>
+
+            <div id="loginForm">
+                <input type="text" id="loginPhone" class="auth-input" placeholder="شماره موبایل (09123456789)" maxlength="11">
+                <input type="password" id="loginPassword" class="auth-input" placeholder="رمز عبور">
+                <button class="primary-btn" style="margin-top: 15px; background: var(--color-blue);" onclick="login()">ورود به داشبورد</button>
+            </div>
+
+            <div id="registerForm" style="display: none;">
+                <input type="text" id="regName" class="auth-input" placeholder="اسمت چیه؟" style="text-align: right; direction: rtl;">
+                <input type="text" id="regPhone" class="auth-input" placeholder="شماره موبایل (09123456789)" maxlength="11">
+                <input type="password" id="regPassword" class="auth-input" placeholder="یک رمز عبور بساز">
+                <button class="primary-btn" style="margin-top: 15px; background: var(--color-green);" onclick="register()">ثبت‌نام</button>
+            </div>
+        </div>
+
+        <!-- صفحه داشبورد -->
+        <div id="dashboardScreen" style="display: none;"></div>
+    </div>
+
+    <!-- منوی انتخاب تم -->
+    <div class="theme-menu" id="themeMenu">
+        <h3 style="color: var(--text-main); text-align: center; margin-bottom: 10px; font-size: 16px;">🎨 انتخاب تم</h3>
+        <div class="theme-menu-item" onclick="setTheme('light')">☀️ روشن</div>
+        <div class="theme-menu-item" onclick="setTheme('dark')">🌙 تیره (پیش‌فرض)</div>
+        <div class="theme-menu-item" onclick="setTheme('ruins')">🏛️ ویرانه‌های سبز</div>
+        <div class="theme-menu-item" onclick="setTheme('desk')">🔭 میز مطالعه نجومی</div>
+        <div class="theme-menu-item" onclick="setTheme('book')">📖 کتاب جادویی</div>
+        <div class="theme-menu-item" onclick="setTheme('forest')">🌿 جنگل سبز</div>
+        <div class="theme-menu-item" onclick="setTheme('purple')">🔮 جنگل بنفش</div>
+        <div class="theme-menu-item" onclick="setTheme('city')">🌃 شفق شهری</div>
+        <div class="theme-menu-item" onclick="setTheme('aurora')">✨ شفق کوهستان</div>
+    </div>
+
+    <script>
+        const ADMIN_ID = "9035357756"; // آیدی خودت رو اینجا بذار
+
+        window.onload = function() {
+            const savedUser = localStorage.getItem('ojGam_user');
+            if (savedUser) {
+                try {
+                    const user = JSON.parse(savedUser);
+                    if (!user.grade || !user.field) {
+                        window.location.href = `/setup?user=${user.telegram_id}`;
+                        return;
+                    }
+                    showDashboard(user);
+                    return;
+                } catch(e) { localStorage.removeItem('ojGam_user'); }
+            }
+            document.getElementById('authScreen').style.display = 'block';
+        }
+
+        function switchAuthTab(tab) {
+            document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+            document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+            document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+            document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+        }
+
+        async function login() {
+            let phone = document.getElementById('loginPhone').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            if (!phone || !password) return showToast("لطفاً شماره و رمز عبور را وارد کنید.", "warning");
+            if (phone.startsWith('0')) phone = phone.substring(1);
+            try {
+                const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, password }) });
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('ojGam_user', JSON.stringify(data.user));
+                    if (!data.user.grade || !data.user.field) {
+                        window.location.href = `/setup?user=${data.user.telegram_id}`;
+                    } else {
+                        showDashboard(data.user);
+                    }
+                } else { showToast(data.detail, "error"); }
+            } catch (err) { showToast("خطا در ارتباط با سرور", "error"); }
+        }
+
+        async function register() {
+            const name = document.getElementById('regName').value.trim();
+            let phone = document.getElementById('regPhone').value.trim();
+            const password = document.getElementById('regPassword').value;
+            if (!name || name.length < 2) return showToast("اسمت رو وارد کن", "warning");
+            if (!phone || !/^09\d{9}$/.test(phone)) return showToast("شماره موبایل نامعتبر است", "warning");
+            if (!password || password.length < 4) return showToast("رمز عبور باید حداقل ۴ کاراکتر باشه", "warning");
+            try {
+                const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ first_name: name, phone, password }) });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast("✅ ثبت‌نام با موفقیت انجام شد! حالا وارد شو.", "success");
+                    document.getElementById('loginPhone').value = phone;
+                    document.getElementById('loginPassword').value = password;
+                    switchAuthTab('login');
+                    login();
+                } else { showToast(data.detail, "error"); }
+            } catch (err) { showToast("خطا در ارتباط با سرور", "error"); }
+        }
+
+        async function logout() {
+            localStorage.removeItem('ojGam_user');
+            location.reload();
+        }
+
+        async function showDashboard(user) {
+            document.getElementById('authScreen').style.display = 'none';
+            const dash = document.getElementById('dashboardScreen');
+            dash.style.display = 'block';
+            
+            const isAdmin = (user.telegram_id.toString() === ADMIN_ID);
+            let unseenPayments = 0;
+            try {
+                const res = await fetch(`/api/payment/unseen-count/${user.telegram_id}`);
+                if (res.ok) { const data = await res.json(); unseenPayments = data.count || 0; }
+            } catch (e) {}
+
+            let supportBtn = isAdmin 
+                ? `<button class="menu-btn" onclick="window.location.href='/admin-support?admin=${user.telegram_id}'" style="border: 2px solid var(--color-yellow);"><span class="icon">👑</span> پشتیبانی ادمین</button>`
+                : `<button class="menu-btn" onclick="window.location.href='/support?user=${user.telegram_id}'"><span class="icon">📞</span> پشتیبانی</button>`;
+            let adminPaymentBtn = isAdmin
+                ? `<button class="menu-btn" onclick="window.location.href='/admin-payments?admin=${user.telegram_id}'" style="border: 2px solid var(--color-green);"><span class="icon">💳</span> پنل پرداخت</button>`
+                : '';
+            const paymentBadge = unseenPayments > 0 ? `<span class="badge">${unseenPayments}</span>` : '';
+
+            const isLight = document.body.classList.contains('light-mode');
+            const themeIcon = isLight ? '🌙' : '☀️';
+
+            dash.innerHTML = `
+                <div class="profile-header">
+                    <div class="avatar">${user.first_name.charAt(0)}</div>
+                    <div class="profile-info">
+                        <h2>${user.first_name}</h2>
+                        <span class="coins-badge">💰 ${user.coins} سکه</span>
+                        <p style="font-size:12px; color:#94a3b8; margin-top:4px;">🎓 ${user.grade} | 📚 ${user.field}</p>
+                    </div>
+                    <button class="theme-toggle" id="themeBtn" onclick="toggleThemeMenu()" title="تغییر تم">🎨</button>
+                    <button class="logout-btn" onclick="logout()" style="margin-right:10px; background:transparent; border:none; color:#ef4444; cursor:pointer; font-size:24px;" title="خروج">🚪</button>
+                </div>
+
+                <div class="menu-grid">
+                    <button class="menu-btn" onclick="window.location.href='/subjects?user=${user.telegram_id}'"><span class="icon">📚</span> درس‌ها</button>
+                    <button class="menu-btn" onclick="window.location.href='/study?user=${user.telegram_id}'"><span class="icon">⏱️</span> مطالعه</button>
+                    <button class="menu-btn" onclick="window.location.href='/coins?user=${user.telegram_id}'"><span class="icon">💰</span> سکه‌ها</button>
+                    
+                    <button class="menu-btn" onclick="window.location.href='/stats?user=${user.telegram_id}'"><span class="icon">📊</span> آمار من</button>
+                    <button class="menu-btn" onclick="window.location.href='/report?user=${user.telegram_id}'"><span class="icon">📊</span> کارنامه</button>
+                    <button class="menu-btn" onclick="window.location.href='/mock-exam?user=${user.telegram_id}'"><span class="icon">🎯</span> آزمون</button>
+                    
+                    <button class="menu-btn" onclick="window.location.href='/konkur?user=${user.telegram_id}'"><span class="icon">🎓</span> رتبه</button>
+                    <button class="menu-btn" onclick="window.location.href='/battle?user=${user.telegram_id}'"><span class="icon">⚔️</span> نبرد</button>
+                    <button class="menu-btn" onclick="window.location.href='/league?user=${user.telegram_id}'"><span class="icon">🏆</span> لیگ</button>
+                    
+                    <button class="menu-btn" onclick="window.location.href='/groups?user=${user.telegram_id}'"><span class="icon">👥</span> گروه</button>
+                    <button class="menu-btn" onclick="window.location.href='/quests?user=${user.telegram_id}'"><span class="icon">🎯</span> مأموریت</button>
+                    <button class="menu-btn" onclick="window.location.href='/achievements?user=${user.telegram_id}'"><span class="icon">🏅</span> دستاورد</button>
+                    
+                    <button class="menu-btn" onclick="window.location.href='/qbank?user=${user.telegram_id}'"><span class="icon">📚</span> بانک سوال</button>
+                    <button class="menu-btn" onclick="window.location.href='/summary?user=${user.telegram_id}'"><span class="icon">📝</span> خلاصه</button>
+                    <button class="menu-btn" onclick="window.location.href='/ai?user=${user.telegram_id}'"><span class="icon">🤖</span> مشاور</button>
+                    
+                    <button class="menu-btn" onclick="window.location.href='/plan?user=${user.telegram_id}'"><span class="icon">📅</span> برنامه</button>
+                    <button class="menu-btn" onclick="window.location.href='/referral?user=${user.telegram_id}'"><span class="icon">🎁</span> دعوت</button>
+                    <button class="menu-btn" onclick="window.location.href='/subscription?user=${user.telegram_id}'"><span class="icon">💎</span> اشتراک${paymentBadge}</button>
+                    
+                    <button class="menu-btn" onclick="window.location.href='/stars?user=${user.telegram_id}'"><span class="icon">🌟</span> ستاره‌ها</button>
+                    ${supportBtn}
+                    ${adminPaymentBtn}
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

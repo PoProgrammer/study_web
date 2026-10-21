@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد | StudyBot</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container" id="app">
+        <div id="loginScreen" class="login-section">
+            <h1>📚 StudyBot</h1>
+            <p>برای شروع، آیدی عددی خود را وارد کنید</p>
+            <input type="text" id="userIdInput" placeholder="مثلاً 8649348758">
+            <button class="primary-btn" onclick="login()">ورود به داشبورد</button>
+        </div>
+
+        <div id="dashboardScreen" style="display: none;">
+            <!-- Dynamic Content -->
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlUserId = urlParams.get('user');
+        if (urlUserId) {
+            document.getElementById('userIdInput').value = urlUserId;
+            login();
+        }
+
+        async function login() {
+            const userId = document.getElementById('userIdInput').value;
+            if (!userId) return alert("آیدی را وارد کنید");
+
+            try {
+                const response = await fetch(`/api/user/${userId}`);
+                const data = await response.json();
+
+                if (data.detail) {
+                    alert("کاربر پیدا نشد! ابتدا در بات ثبت‌نام کنید.");
+                    return;
+                }
+
+                if (!data.grade || !data.field) {
+                    window.location.href = `/setup.html?user=${userId}`;
+                    return;
+                }
+
+                showDashboard(data);
+            } catch (err) {
+                alert("خطا در ارتباط با سرور");
+            }
+        }
+
+        function showDashboard(user) {
+            document.getElementById('loginScreen').style.display = 'none';
+            const dash = document.getElementById('dashboardScreen');
+            dash.style.display = 'block';
+            
+            dash.innerHTML = `
+                <div class="profile-header">
+                    <div class="avatar">${user.first_name.charAt(0)}</div>
+                    <div class="profile-info">
+                        <h2>${user.first_name}</h2>
+                        <span class="coins-badge">💰 ${user.coins} سکه</span>
+                        <p style="font-size:12px; color:#94a3b8; margin-top:4px;">🎓 ${user.grade} | 📚 ${user.field}</p>
+                    </div>
+                </div>
+
+                <div class="menu-grid">
+                    <button class="menu-btn" onclick="window.location.href='subjects.html?user=${user.telegram_id}'">
+                        <span class="icon">📚</span> درس‌ها
+                    </button>
+                    <button class="menu-btn" onclick="window.location.href='study.html?user=${user.telegram_id}'">
+                        <span class="icon">⏱️</span> شروع مطالعه
+                    </button>
+                    <button class="menu-btn" onclick="window.location.href='mock_exam.html?user=${user.telegram_id}'">
+                        <span class="icon">🎯</span> آزمون کنکور
+                    </button>
+                    <button class="menu-btn" onclick="alert('به زودی...')">
+                        <span class="icon">🏆</span> لیگ ماهانه
+                    </button>
+                    <button class="menu-btn" onclick="alert('به زودی...')">
+                        <span class="icon">📊</span> کارنامه من
+                    </button>
+                    <button class="menu-btn" onclick="alert('به زودی...')">
+                        <span class="icon">📞</span> پشتیبانی
+                    </button>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

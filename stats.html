@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>آمار من | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>📊 آمار من</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        async function loadStats() {
+            try {
+                const res = await fetch(`/api/stats/${userId}`);
+                const data = await res.json();
+                
+                document.getElementById('content').innerHTML = `
+                    <div class="stats-row" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+                        <div class="box" style="flex: 1; min-width: 45%; text-align: center; padding: 20px;">
+                            <div style="font-size: 32px; font-weight: bold; color: var(--color-blue);">${data.today}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">دقیقه امروز</div>
+                        </div>
+                        <div class="box" style="flex: 1; min-width: 45%; text-align: center; padding: 20px;">
+                            <div style="font-size: 32px; font-weight: bold; color: var(--color-green);">${data.week}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">دقیقه این هفته</div>
+                        </div>
+                    </div>
+                    
+                    <div class="box" style="text-align: center; padding: 20px;">
+                        <div style="font-size: 48px; font-weight: bold; color: var(--color-orange);">${data.all}</div>
+                        <div style="font-size: 14px; color: var(--text-muted);">کل دقیقه‌های مطالعه</div>
+                    </div>
+                    
+                    <div class="stats-row" style="display: flex; gap: 10px; margin-top: 20px;">
+                        <div class="box" style="flex: 1; text-align: center; padding: 20px;">
+                            <div style="font-size: 24px; font-weight: bold; color: var(--color-purple);">${data.sessions}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">جلسه مطالعه</div>
+                        </div>
+                        <div class="box" style="flex: 1; text-align: center; padding: 20px;">
+                            <div style="font-size: 24px; font-weight: bold; color: var(--color-pink);">${data.exams}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">آزمون داده شده</div>
+                        </div>
+                    </div>
+                `;
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="box" style="color:#ef4444;">❌ خطا در بارگذاری</div>`;
+            }
+        }
+
+        loadStats();
+    </script>
+</body>
+</html>

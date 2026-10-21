@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پیش‌بینی رتبه | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <style>
+        .major-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color); font-size: 14px; color: var(--text-main); }
+        .chance-high { color: var(--color-green); font-weight: bold; }
+        .chance-mid { color: var(--color-yellow); font-weight: bold; }
+        .chance-low { color: #ef4444; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>🎓 پیش‌بینی رتبه کنکور</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        async function loadPrediction() {
+            try {
+                const res = await fetch(`/api/konkur/${userId}`);
+                const data = await res.json();
+                const container = document.getElementById('content');
+
+                if (!data.has_data) {
+                    container.innerHTML = `<div class="box" style="text-align:center;">برای پیش‌بینی، اول باید یه آزمون کنکور داده باشی!</div>`;
+                    return;
+                }
+
+                let majorsHtml = '';
+                data.majors.forEach(m => {
+                    let cls = 'chance-low';
+                    if (m.chance >= 70) cls = 'chance-high';
+                    else if (m.chance >= 40) cls = 'chance-mid';
+                    majorsHtml += `<div class="major-item"><span>${m.name}</span><span class="${cls}">${m.chance}%</span></div>`;
+                });
+
+                container.innerHTML = `
+                    <div class="box" style="text-align:center;">
+                        <h2 style="color:var(--color-blue); font-size:48px; margin-bottom:10px;">${data.rank.toLocaleString()}</h2>
+                        <p style="color:var(--text-muted);">رتبه تقریبی شما</p>
+                        <p style="margin-top:15px;">آخرین آزمون: <b>${data.percent}%</b></p>
+                    </div>
+                    <div class="box">
+                        <h3>📊 شانس قبولی در رشته‌ها</h3>
+                        ${majorsHtml}
+                    </div>
+                `;
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="box" style="color:#ef4444;">❌ خطا در بارگذاری</div>`;
+            }
+        }
+
+        loadPrediction();
+    </script>
+</body>
+</html>

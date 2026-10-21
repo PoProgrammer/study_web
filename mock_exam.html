@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>آزمون کنکور | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <style>
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .question-box { background: var(--bg-card); padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+        .question-text { font-size: 17px; font-weight: bold; margin-bottom: 15px; line-height: 1.6; color: var(--text-main); }
+        .option-btn {
+            display: block; width: 100%; text-align: right; background: var(--bg-input);
+            border: 2px solid var(--border-color); padding: 12px; border-radius: 10px;
+            color: var(--text-main); font-family: inherit; font-size: 15px; margin-bottom: 10px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .option-btn:hover { border-color: var(--color-blue); background: var(--bg-card-hover); }
+        .option-btn.selected { background: var(--color-blue); border-color: var(--color-blue); color: white; }
+        .progress-bar { height: 8px; background: var(--bg-input); border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--color-blue); width: 0%; transition: width 0.3s; }
+        .timer { font-size: 20px; font-weight: bold; color: var(--color-yellow); text-align: center; margin-bottom: 15px; }
+        
+        .error-box {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 50px;
+            border: 2px solid #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- مرحله ۱: شروع آزمون -->
+        <div id="startScreen" style="text-align: center; margin-top: 100px;">
+            <h1>🎯 آزمون کنکور</h1>
+            <p style="color: var(--text-muted); margin: 20px 0;">آماده‌ای؟ پس از شروع، سوالات ساخته می‌شوند.</p>
+            <button class="primary-btn" onclick="startExam()">🚀 شروع آزمون</button>
+            <button class="back-btn" style="width:100%; margin-top:10px; background:transparent; color:var(--text-muted); border:none; padding:10px; cursor:pointer;" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        </div>
+
+        <!-- مرحله ۲: نمایش سوالات -->
+        <div id="examScreen" style="display: none;">
+            <div class="timer" id="timerDisplay">⏰ 00:00</div>
+            
+            <div class="question-header">
+                <span id="questionCounter">سوال ۱ از ۰</span>
+                <span id="questionProgressText">۰٪</span>
+            </div>
+            
+            <div class="progress-bar"><div class="progress-fill" id="progressBar"></div></div>
+            
+            <div class="question-box">
+                <div class="question-text" id="questionText">...</div>
+                <div id="optionsContainer"></div>
+            </div>
+            <button class="primary-btn" onclick="nextQuestion()" id="nextBtn" style="display: none;">سوال بعدی ⬅️</button>
+        </div>
+
+        <!-- مرحله ۳: نمایش نتیجه -->
+        <div id="resultScreen" style="display: none; text-align: center; margin-top: 50px;">
+            <h1>📊 کارنامه</h1>
+            <div id="resultContent" style="margin: 30px 0; font-size: 18px; line-height: 2; color: var(--text-main);"></div>
+            <button class="primary-btn" onclick="window.location.href='/?user=' + userId">بازگشت به داشبورد</button>
+        </div>
+
+        <!-- مرحله ۴: نمایش خطا -->
+        <div id="errorScreen" style="display: none;">
+            <div class="error-box">
+                <h2>⚠️ خطا در ساخت آزمون</h2>
+                <p id="errorText" style="margin: 15px 0;">...</p>
+                <button class="primary-btn" onclick="window.location.href='/?user=' + userId">بازگشت به داشبورد</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        let mockId = null;
+        let questions = [];
+        let userAnswers = [];
+        let currentIndex = 0;
+        let timeLeft = 0;
+        let timerInterval = null;
+
+        async function startExam() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('examScreen').style.display = 'block';
+            document.getElementById('questionText').innerText = "⏳ در حال ساخت سوالات با هوش مصنوعی... (ممکن است ۱ تا ۲ دقیقه طول بکشد)";
+            document.getElementById('nextBtn').style.display = 'none';
+
+            try {
+                const res = await fetch(`/api/mock_exam/start/${userId}`, { method: 'POST' });
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    showError(data.detail || "خطای ناشناخته در ساخت آزمون");
+                    return;
+                }
+
+                mockId = data.mock_id;
+                questions = data.questions;
+                timeLeft = data.duration_minutes * 60;
+                userAnswers = new Array(questions.length).fill(-1);
+                
+                showQuestion();
+                startTimer();
+            } catch (err) {
+                console.error(err);
+                showError("خطا در ارتباط با سرور");
+            }
+        }
+
+        function showError(msg) {
+            document.getElementById('examScreen').style.display = 'none';
+            document.getElementById('errorScreen').style.display = 'block';
+            document.getElementById('errorText').innerText = msg;
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    finishExam();
+                    return;
+                }
+                timeLeft--;
+                const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+                const s = (timeLeft % 60).toString().padStart(2, '0');
+                document.getElementById('timerDisplay').innerText = `⏰ ${m}:${s}`;
+                
+                if (timeLeft < 60) {
+                    document.getElementById('timerDisplay').style.color = '#ef4444';
+                }
+            }, 1000);
+        }
+
+        function showQuestion() {
+            const q = questions[currentIndex];
+            
+            document.getElementById('questionCounter').innerText = `سوال ${currentIndex + 1} از ${questions.length}`;
+            const progressPercent = Math.round(((currentIndex + 1) / questions.length) * 100);
+            document.getElementById('questionProgressText').innerText = `${progressPercent}%`;
+            document.getElementById('progressBar').style.width = `${progressPercent}%`;
+
+            document.getElementById('questionText').innerText = `${currentIndex + 1}. ${q.q}`;
+            
+            const optsContainer = document.getElementById('optionsContainer');
+            optsContainer.innerHTML = "";
+            
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "option-btn";
+                if (userAnswers[currentIndex] === idx) btn.classList.add("selected");
+                btn.innerText = `${idx + 1}. ${opt}`;
+                btn.onclick = () => selectOption(idx);
+                optsContainer.appendChild(btn);
+            });
+
+            const nextBtn = document.getElementById('nextBtn');
+            nextBtn.style.display = 'block';
+            
+            if (currentIndex === questions.length - 1) {
+                nextBtn.innerText = "پایان آزمون و مشاهده کارنامه ✅";
+            } else {
+                nextBtn.innerText = "سوال بعدی ⬅️";
+            }
+        }
+
+        function selectOption(optIndex) {
+            userAnswers[currentIndex] = optIndex;
+            
+            const allBtns = document.querySelectorAll('.option-btn');
+            allBtns.forEach((btn, idx) => {
+                if (idx === optIndex) btn.classList.add('selected');
+                else btn.classList.remove('selected');
+            });
+        }
+
+        function nextQuestion() {
+            if (currentIndex === questions.length - 1) {
+                finishExam();
+            } else {
+                currentIndex++;
+                showQuestion();
+            }
+        }
+
+        async function finishExam() {
+            clearInterval(timerInterval);
+            document.getElementById('examScreen').style.display = 'none';
+            document.getElementById('resultScreen').style.display = 'block';
+            document.getElementById('resultContent').innerHTML = "⏳ در حال تصحیح...";
+
+            try {
+                const res = await fetch(`/api/mock_exam/finish/${mockId}?telegram_id=${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userAnswers)
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    document.getElementById('resultContent').innerHTML = `<p style="color:red;">خطا در تصحیح: ${data.detail}</p>`;
+                    return;
+                }
+
+                let html = `
+                    <p>🎯 درصد کل: <b>${data.percent.toFixed(1)}%</b></p>
+                    <p>✅ درست: ${data.total_correct} | ❌ غلط: ${data.total_wrong} | ⬜ نزده: ${data.total_blank}</p>
+                    <p>${data.status}</p>
+                    <p>💰 سکه: +${data.coins_earned} | 🏆 لیگ: +${data.league_points}</p>
+                `;
+                if (data.new_achievements && data.new_achievements.length > 0) {
+                    html += `<p>🎉 دستاورد جدید: ${data.new_achievements.join(", ")}</p>`;
+                }
+                document.getElementById('resultContent').innerHTML = html;
+            } catch (err) {
+                document.getElementById('resultContent').innerHTML = `<p style="color:red;">خطا در ارتباط با سرور</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

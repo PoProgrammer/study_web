@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بانک سوال | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <style>
+        .q-item { background: var(--bg-card); padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--border-color); }
+        .option { padding: 8px; margin: 4px 0; border-radius: 6px; background: var(--bg-input); font-size: 13px; }
+        .option.correct { background: rgba(16, 185, 129, 0.2); color: var(--color-green); border: 1px solid var(--color-green); }
+        .option.wrong { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>📚 بانک سوالات</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        async function loadQbank() {
+            const res = await fetch(`/api/qbank/${userId}`);
+            const data = await res.json();
+            const container = document.getElementById('content');
+
+            if (data.total === 0) {
+                container.innerHTML = `<div class="box" style="text-align:center;">هنوز سوالی توی بانک نداری!</div>`;
+                return;
+            }
+
+            let html = `
+                <div class="box" style="text-align:center;">
+                    <h3>📊 ${data.total} سوال در بانک</h3>
+                </div>
+                <div class="box">
+                    <h3>📖 سوالات اخیر</h3>
+                    <div id="questionsList">در حال بارگذاری...</div>
+                </div>
+                <div class="box">
+                    <button class="danger-btn" onclick="clearQbank()">🗑️ پاک کردن کل بانک</button>
+                </div>
+            `;
+            container.innerHTML = html;
+
+            loadQuestions();
+        }
+
+        async function loadQuestions() {
+            const res = await fetch(`/api/qbank/${userId}/questions`);
+            const data = await res.json();
+            const list = document.getElementById('questionsList');
+
+            if (data.questions.length === 0) {
+                list.innerHTML = `<p style="color:var(--text-muted);">سوالی پیدا نشد.</p>`;
+                return;
+            }
+
+            let html = '';
+            data.questions.forEach((q, idx) => {
+                html += `<div class="q-item"><b>${idx + 1}. ${q.text}</b>`;
+                q.options.forEach((opt, i) => {
+                    let cls = '';
+                    if (i === q.correct) cls = 'correct';
+                    else if (i === q.user_answer) cls = 'wrong';
+                    html += `<div class="option ${cls}">${i + 1}. ${opt}</div>`;
+                });
+                html += `</div>`;
+            });
+            list.innerHTML = html;
+        }
+
+        async function clearQbank() {
+            if (!confirm("مطمئنی می‌خوای کل بانک سوالات رو پاک کنی؟")) return;
+            try {
+                const res = await fetch(`/api/qbank/${userId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    showToast("✅ بانک پاک شد", "success");
+                    loadQbank();
+                }
+            } catch (e) {
+                showToast("خطا در پاک کردن", "error");
+            }
+        }
+
+        loadQbank();
+    </script>
+</body>
+</html>

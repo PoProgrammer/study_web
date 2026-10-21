@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مأموریت‌ها | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>🎯 مأموریت‌های امروز</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        async function loadQuests() {
+            try {
+                const res = await fetch(`/api/quests/${userId}`);
+                const data = await res.json();
+                
+                let html = '';
+                if (!data.quests || data.quests.length === 0) {
+                    html = `<div class="box" style="text-align:center;">مأموریتی برای امروز نداری!</div>`;
+                } else {
+                    for (const q of data.quests) {
+                        let btn = '';
+                        if (q.claimed) {
+                            btn = `<button class="secondary-btn" style="width:100%; margin-top:10px;" disabled>✅ دریافت شد</button>`;
+                        } else if (q.completed) {
+                            btn = `<button class="primary-btn" style="width:100%; margin-top:10px; background:var(--color-green);" onclick="claimQuest('${q.id}')">🎁 دریافت جایزه (${q.coins} سکه)</button>`;
+                        } else {
+                            btn = `<button class="secondary-btn" style="width:100%; margin-top:10px;" disabled>🔒 انجام نشده</button>`;
+                        }
+
+                        html += `
+                            <div class="box">
+                                <h3>${q.text}</h3>
+                                <p style="color:var(--text-muted); font-size:13px; margin-top:5px;">🎁 جایزه: ${q.coins} سکه</p>
+                                ${btn}
+                            </div>
+                        `;
+                    }
+                }
+                document.getElementById('content').innerHTML = html;
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="box" style="color:#ef4444;">❌ خطا در بارگذاری</div>`;
+            }
+        }
+
+        async function claimQuest(questId) {
+            try {
+                const res = await fetch(`/api/quests/${userId}/claim`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ quest_id: questId })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`✅ ${data.coins} سکه دریافت کردی!`, "success");
+                    loadQuests();
+                } else {
+                    showToast("❌ " + data.detail, "error");
+                }
+            } catch (e) {
+                showToast("❌ خطا در ارتباط با سرور", "error");
+            }
+        }
+
+        loadQuests();
+    </script>
+</body>
+</html>

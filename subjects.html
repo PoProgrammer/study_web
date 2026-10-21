@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>درس‌ها | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <style>
+        .back-btn { background: transparent; border: none; color: var(--text-muted); font-family: inherit; font-size: 16px; cursor: pointer; margin-bottom: 20px; padding: 10px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 14px; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-family: inherit; font-size: 14px; }
+        .subject-item { background: var(--bg-card); padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); }
+        .subject-name { font-weight: bold; color: var(--text-main); }
+        .subject-meta { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+        .delete-btn { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>📚 درس‌های من</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        async function loadSubjects() {
+            document.getElementById('content').innerHTML = `<div class="box" style="text-align:center;">⏳ در حال بارگذاری...</div>`;
+            try {
+                const res = await fetch(`/api/subjects/${userId}`);
+                const subjects = await res.json();
+                
+                let html = '';
+                if (subjects.length === 0) {
+                    html = `<div class="box" style="text-align:center;">هنوز درسی اضافه نکردی!</div>`;
+                } else {
+                    for (const s of subjects) {
+                        const fieldStr = s.field ? ` - ${s.field}` : '';
+                        html += `
+                            <div class="subject-item">
+                                <div>
+                                    <div class="subject-name">📖 ${s.book}</div>
+                                    <div class="subject-meta">${s.grade}${fieldStr}</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                html += `<button class="primary-btn" style="margin-top: 20px;" onclick="showAddForm()">➕ افزودن درس جدید</button>`;
+                document.getElementById('content').innerHTML = html;
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="box" style="color:#ef4444;">❌ خطا در بارگذاری</div>`;
+            }
+        }
+
+        function showAddForm() {
+            document.getElementById('content').innerHTML = `
+                <div class="box">
+                    <h3>➕ افزودن درس</h3>
+                    <div class="form-group">
+                        <label>اسم کتاب</label>
+                        <input type="text" id="bookName" placeholder="مثلاً ریاضی ۳">
+                    </div>
+                    <div class="form-group">
+                        <label>پایه</label>
+                        <select id="gradeSelect">
+                            <option value="دهم">دهم</option>
+                            <option value="یازدهم">یازدهم</option>
+                            <option value="دوازدهم">دوازدهم</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>رشته (اختیاری)</label>
+                        <select id="fieldSelect">
+                            <option value="">هیچکدام</option>
+                            <option value="ریاضی">ریاضی</option>
+                            <option value="تجربی">تجربی</option>
+                            <option value="انسانی">انسانی</option>
+                        </select>
+                    </div>
+                    <button class="primary-btn" onclick="addSubject()">ذخیره درس</button>
+                    <button class="secondary-btn" onclick="loadSubjects()">لغو</button>
+                </div>
+            `;
+        }
+
+        async function addSubject() {
+            const book = document.getElementById('bookName').value.trim();
+            const grade = document.getElementById('gradeSelect').value;
+            const field = document.getElementById('fieldSelect').value;
+
+            if (!book) return showToast("اسم کتاب رو وارد کن", "warning");
+
+            try {
+                const res = await fetch(`/api/subjects/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ book, grade, field })
+                });
+                
+                if (res.ok) {
+                    showToast("✅ درس اضافه شد!", "success");
+                    loadSubjects();
+                } else {
+                    const data = await res.json();
+                    showToast("❌ " + data.detail, "error");
+                }
+            } catch (e) {
+                showToast("❌ خطا در ارتباط با سرور", "error");
+            }
+        }
+
+        loadSubjects();
+    </script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ستاره‌ها | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <style>
+        .star-big { font-size: 60px; text-align: center; margin: 20px 0; }
+        .reward-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
+        .reward-item:last-child { border-bottom: none; }
+        .claimed { color: var(--color-green); }
+        .achieved { color: var(--color-yellow); }
+        .locked { color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>🌟 ستاره‌های من</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        async function loadStars() {
+            const res = await fetch(`/api/stars/${userId}`);
+            const data = await res.json();
+            const container = document.getElementById('content');
+
+            let html = `
+                <div class="box" style="text-align:center;">
+                    <p>📅 ${data.month_display}</p>
+                    <p style="color:#94a3b8; font-size:13px;">⏳ ${data.days_left} روز تا پایان ماه</p>
+                    <div class="star-big">🌟</div>
+                    <h2 style="color:var(--color-yellow);">${data.stars} ستاره</h2>
+                    <p style="font-size:13px; color:#94a3b8;">هر روز که وارد بشی، ۱ ستاره می‌گیری!</p>
+                </div>
+                <div class="box">
+                    <h3>🎁 جوایز</h3>
+            `;
+
+            data.rewards.forEach(r => {
+                let statusIcon = "⬜";
+                let cls = "locked";
+                if (r.claimed) { statusIcon = "✅"; cls = "claimed"; }
+                else if (r.achieved) { statusIcon = "🎁"; cls = "achieved"; }
+
+                html += `
+                    <div class="reward-item ${cls}">
+                        <span>${statusIcon} ${r.milestone} ستاره</span>
+                        <b>+${r.points} امتیاز لیگ</b>
+                    </div>
+                `;
+            });
+
+            if (data.next_milestone) {
+                const next = data.rewards.find(r => r.milestone === data.next_milestone);
+                if (next) {
+                    html += `<p style="text-align:center; margin-top:15px; color:var(--color-blue);">🎯 ${next.remaining} ستاره تا جایزه بعدی</p>`;
+                }
+            }
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        loadStars();
+    </script>
+</body>
+</html>

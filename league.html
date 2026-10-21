@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لیگ | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <style>
+        .leader-item { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+        .leader-item.me { background: rgba(14, 165, 233, 0.1); border-radius: 8px; padding: 12px; }
+        .rank { font-size: 18px; min-width: 30px; }
+        .name { flex: 1; font-weight: bold; color: var(--text-main); }
+        .points { color: var(--color-yellow); font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>🏆 لیگ ماهانه</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        async function loadLeague() {
+            try {
+                const res = await fetch(`/api/league/leaderboard/${userId}`);
+                const data = await res.json();
+                const container = document.getElementById('content');
+
+                let listHtml = '';
+                data.leaderboard.forEach((r, idx) => {
+                    let medal = "⬜";
+                    if (idx === 0) medal = "🥇";
+                    else if (idx === 1) medal = "🥈";
+                    else if (idx === 2) medal = "🥉";
+                    else medal = `${idx + 1}.`;
+
+                    listHtml += `
+                        <div class="leader-item ${r.is_me ? 'me' : ''}">
+                            <span class="rank">${medal}</span>
+                            <span class="name">${r.name} ${r.is_me ? '(شما)' : ''}</span>
+                            <span class="points">${r.points} 🏆</span>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = `
+                    <div class="box" style="text-align:center;">
+                        <h3>📊 آمار شما در لیگ ${data.grade}</h3>
+                        <p style="margin-top:10px;">رتبه: <b style="color:var(--color-blue); font-size:20px;">${data.user_rank}</b> از ${data.participants}</p>
+                        <p>امتیاز: <b style="color:var(--color-yellow); font-size:20px;">${data.user_points}</b></p>
+                    </div>
+                    <div class="box">
+                        <h3>🏆 لیدربورد برترین‌ها</h3>
+                        ${listHtml || '<p style="color:var(--text-muted);">هنوز امتیازی ثبت نشده.</p>'}
+                    </div>
+                `;
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="box" style="color:#ef4444;">❌ خطا در بارگذاری</div>`;
+            }
+        }
+
+        loadLeague();
+    </script>
+</body>
+</html>

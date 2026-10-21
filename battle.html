@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نبرد ۱ به ۱ | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <style>
+        .back-btn { background: transparent; border: none; color: var(--text-muted); font-family: inherit; font-size: 16px; cursor: pointer; margin-bottom: 20px; padding: 10px; }
+        
+        .subject-btn { 
+            display: block; width: 100%; padding: 15px; margin-bottom: 10px; 
+            border-radius: var(--radius-sm); background: var(--bg-input); 
+            color: var(--text-main); border: 1px solid var(--border-color); 
+            font-family: inherit; font-size: 15px; cursor: pointer; text-align: right;
+            transition: all 0.2s;
+        }
+        .subject-btn:hover { border-color: var(--color-blue); background: var(--bg-card-hover); }
+
+        .code-box { 
+            background: var(--bg-input); padding: 20px; border-radius: 10px; 
+            text-align: center; font-size: 32px; font-family: monospace; 
+            border: 2px dashed var(--color-blue); margin: 10px 0; 
+            letter-spacing: 6px; color: var(--color-blue); font-weight: bold; 
+        }
+
+        .question-box { background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border-color); }
+        .question-text { font-size: 16px; line-height: 1.8; margin-bottom: 15px; color: var(--text-main); }
+        
+        .option-btn { 
+            display: block; width: 100%; padding: 12px; margin-bottom: 8px; 
+            border-radius: 8px; background: var(--bg-input); color: var(--text-main); 
+            border: 1px solid var(--border-color); font-family: inherit; font-size: 14px; 
+            cursor: pointer; text-align: right; transition: all 0.2s;
+        }
+        .option-btn:hover { background: var(--bg-card-hover); }
+        .option-btn.selected { background: var(--color-blue); border-color: var(--color-blue); color: white; }
+
+        .waiting-anim { text-align: center; padding: 30px; }
+        .waiting-anim .emoji { font-size: 60px; display: inline-block; animation: spin 2s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .progress-dots { display: flex; justify-content: center; gap: 8px; margin: 15px 0; }
+        .progress-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border-color); }
+        .progress-dot.active { background: var(--color-blue); }
+        .progress-dot.done { background: var(--color-green); }
+
+        .battle-result { text-align: center; padding: 20px; }
+        .battle-result .big-emoji { font-size: 80px; margin: 20px 0; }
+        .battle-result .title { font-size: 24px; font-weight: bold; margin-bottom: 15px; }
+        
+        .score-row { display: flex; justify-content: space-around; margin: 20px 0; }
+        .score-box { flex: 1; text-align: center; padding: 15px; }
+        .score-value { font-size: 32px; font-weight: bold; }
+        .score-label { font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>⚔️ نبرد ۱ به ۱</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        let pollInterval = null;
+        let currentBattleId = null;
+        let currentQuestions = null;
+        let currentAnswers = [];
+        let currentQuestionIndex = 0;
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+        async function loadMainMenu() {
+            stopPolling();
+            document.getElementById('content').innerHTML = `<div class="box" style="text-align:center;">⏳ در حال بارگذاری...</div>`;
+            
+            try {
+                const res = await fetch(`/api/battle/subjects/${userId}`);
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    document.getElementById('content').innerHTML = `
+                        <div class="box" style="text-align:center;">
+                            <p style="color: #ef4444;">❌ ${data.detail}</p>
+                            <button class="primary-btn" style="margin-top: 20px;" onclick="window.location.href='coins.html?user=${userId}'">💰 رفتن به سکه‌ها</button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let subjectsHtml = '';
+                if (data.subjects.length === 0) {
+                    subjectsHtml = `<p style="text-align: center; color: var(--text-muted);">هنوز درسی اضافه نکردی. اول برو درس‌هات رو اضافه کن.</p>`;
+                } else {
+                    for (const s of data.subjects) {
+                        const label = s.field ? `📖 ${s.book} — ${s.grade} ${s.field}` : `📖 ${s.book} — ${s.grade}`;
+                        subjectsHtml += `<button class="subject-btn" onclick="startCreate(${s.id})">${label}</button>`;
+                    }
+                }
+                
+                document.getElementById('content').innerHTML = `
+                    <div class="box" style="text-align: center;">
+                        <h3>⚔️ نبرد ۱ به ۱</h3>
+                        <p style="color: var(--text-muted); font-size: 13px; margin-top: 10px;">
+                            ${data.questions_count} سوال • شرط: ${data.wager} سکه<br>
+                            برنده: ${data.wager * 2} سکه می‌گیره
+                        </p>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <button class="primary-btn" onclick="showCreateForm()">➕ ساخت نبرد</button>
+                        <button class="primary-btn" style="background:var(--bg-card-hover); color:var(--text-main);" onclick="showJoinForm()">🔗 پیوستن</button>
+                    </div>
+                    
+                    <div id="formArea"></div>
+                `;
+                
+                showCreateForm(subjectsHtml);
+            } catch (e) {
+                console.error(e);
+                document.getElementById('content').innerHTML = `<div class="box" style="color:#ef4444;">❌ خطا در ارتباط با سرور</div>`;
+            }
+        }
+
+        function showCreateForm(subjectsHtml) {
+            if (typeof subjectsHtml !== 'string') {
+                loadMainMenu();
+                return;
+            }
+            document.getElementById('formArea').innerHTML = `
+                <div class="box">
+                    <h3>📚 یه درس انتخاب کن:</h3>
+                    ${subjectsHtml}
+                </div>
+            `;
+        }
+
+        function showJoinForm() {
+            document.getElementById('formArea').innerHTML = `
+                <div class="box">
+                    <h3>🔗 پیوستن به نبرد</h3>
+                    <div class="form-group">
+                        <label>کد نبرد (۶ رقم)</label>
+                        <input type="text" id="joinCode" placeholder="مثلاً 123456" maxlength="6" pattern="[0-9]{6}">
+                    </div>
+                    <button class="primary-btn" onclick="joinBattle()">🎯 پیوستن</button>
+                </div>
+            `;
+        }
+
+        async function startCreate(subjectId) {
+            document.getElementById('content').innerHTML = `<div class="box" style="text-align:center;">⏳ در حال ساخت سوالات... (چند ثانیه صبر کن)</div>`;
+            
+            try {
+                const res = await fetch(`/api/battle/create/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subject_id: subjectId })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    currentBattleId = data.battle_id;
+                    showWaitingScreen(data.code, data.subject_book, data.wager);
+                } else {
+                    showToast("❌ " + data.detail, "error");
+                    loadMainMenu();
+                }
+            } catch (e) {
+                showToast("❌ خطا در ارتباط با سرور", "error");
+                loadMainMenu();
+            }
+        }
+
+        function showWaitingScreen(code, subjectBook, wager) {
+            document.getElementById('content').innerHTML = `
+                <div class="box" style="text-align: center;">
+                    <h3>🎯 نبرد ساخته شد!</h3>
+                    <p style="color: var(--text-muted); margin: 15px 0;">📖 ${subjectBook} — ${wager} سکه</p>
+                    <p style="margin-top: 15px;">این کد رو به دوستت بده:</p>
+                    <div class="code-box">${code}</div>
+                    <div class="waiting-anim">
+                        <div class="emoji">⏳</div>
+                        <p style="color: var(--text-muted); margin-top: 15px;">در حال انتظار برای حریف...</p>
+                    </div>
+                    <button class="secondary-btn" style="margin-top:20px; width:100%;" onclick="copyCode('${code}')">📋 کپی کد</button>
+                    <button class="danger-btn" style="margin-top:10px; width:100%;" onclick="loadMainMenu()">❌ لغو</button>
+                </div>
+            `;
+            startBattlePolling(currentBattleId);
+        }
+
+        async function joinBattle() {
+            const code = document.getElementById('joinCode').value.trim();
+            if (!code || code.length !== 6) return showToast("کد باید ۶ رقم باشه", "warning");
+            
+            try {
+                const res = await fetch(`/api/battle/join/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    currentBattleId = data.battle_id;
+                    showToast("✅ به نبرد پیوستی! حالا سوالات رو جواب بده.", "success");
+                    startBattlePolling(currentBattleId);
+                } else {
+                    showToast("❌ " + data.detail, "error");
+                }
+            } catch (e) {
+                showToast("❌ خطا در ارتباط با سرور", "error");
+            }
+        }
+
+        function startBattlePolling(battleId) {
+            stopPolling();
+            checkBattleStatus(battleId);
+            pollInterval = setInterval(() => checkBattleStatus(battleId), 3000);
+        }
+
+        async function checkBattleStatus(battleId) {
+            try {
+                const res = await fetch(`/api/battle/status/${battleId}/${userId}`);
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    stopPolling();
+                    document.getElementById('content').innerHTML = `<div class="box" style="color:#ef4444;">❌ ${data.detail}</div>`;
+                    return;
+                }
+                
+                if (data.status === 'waiting') return;
+                
+                if (data.status === 'active') {
+                    if (data.need_answers && data.questions) {
+                        stopPolling();
+                        showQuestions(data);
+                    } else {
+                        showWaitingForOpponent(data);
+                    }
+                    return;
+                }
+                
+                if (data.status === 'completed') {
+                    stopPolling();
+                    showBattleResult(data);
+                    return;
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function showQuestions(data) {
+            currentQuestions = data.questions;
+            currentAnswers = new Array(data.questions.length).fill(null);
+            currentQuestionIndex = 0;
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const q = currentQuestions[currentQuestionIndex];
+            const total = currentQuestions.length;
+            
+            let dotsHtml = '';
+            for (let i = 0; i < total; i++) {
+                let cls = 'progress-dot';
+                if (i < currentQuestionIndex) cls += ' done';
+                else if (i === currentQuestionIndex) cls += ' active';
+                dotsHtml += `<div class="${cls}"></div>`;
+            }
+            
+            let optionsHtml = '';
+            for (let i = 0; i < q.options.length; i++) {
+                const selected = currentAnswers[currentQuestionIndex] === i ? 'selected' : '';
+                optionsHtml += `<button class="option-btn ${selected}" onclick="selectAnswer(${i})">${i + 1}. ${q.options[i]}</button>`;
+            }
+            
+            document.getElementById('content').innerHTML = `
+                <div class="box">
+                    <div class="progress-dots">${dotsHtml}</div>
+                    <p style="text-align: center; color: var(--text-muted); font-size: 13px;">سوال ${currentQuestionIndex + 1} از ${total}</p>
+                </div>
+                
+                <div class="question-box">
+                    <p class="question-text">${q.q}</p>
+                    ${optionsHtml}
+                </div>
+                
+                ${currentAnswers[currentQuestionIndex] !== null ? 
+                    `<button class="primary-btn" onclick="nextQuestion()">${currentQuestionIndex === total - 1 ? '✅ ارسال جواب‌ها' : '➡️ سوال بعدی'}</button>` 
+                    : ''}
+            `;
+        }
+
+        function selectAnswer(index) {
+            currentAnswers[currentQuestionIndex] = index;
+            renderQuestion();
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < currentQuestions.length - 1) {
+                currentQuestionIndex++;
+                renderQuestion();
+            } else {
+                submitAnswers();
+            }
+        }
+
+        async function submitAnswers() {
+            document.getElementById('content').innerHTML = `<div class="box" style="text-align:center;">⏳ در حال ارسال جواب‌ها...</div>`;
+            
+            try {
+                const res = await fetch(`/api/battle/submit/${currentBattleId}/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ answers: currentAnswers })
+                });
+                
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    showToast("❌ " + data.detail, "error");
+                    return;
+                }
+                
+                if (data.completed) {
+                    checkBattleStatus(currentBattleId);
+                } else {
+                    showWaitingForOpponent({});
+                    startBattlePolling(currentBattleId);
+                }
+            } catch (e) {
+                showToast("❌ خطا در ارتباط با سرور", "error");
+            }
+        }
+
+        function showWaitingForOpponent(data) {
+            document.getElementById('content').innerHTML = `
+                <div class="box waiting-anim">
+                    <div class="emoji">⏳</div>
+                    <h3 style="margin-top: 15px;">جواب‌هات ثبت شد!</h3>
+                    <p style="color: var(--text-muted); margin-top: 15px;">منتظریم حریف هم جواب بده...</p>
+                </div>
+            `;
+        }
+
+        function showBattleResult(data) {
+            let emoji = '🤝';
+            let title = 'مساوی!';
+            let color = 'var(--color-yellow)';
+            let coinText = '';
+            
+            if (data.i_won) {
+                emoji = '🏆';
+                title = 'بردی!';
+                color = 'var(--color-green)';
+                coinText = `<p style="color: var(--color-green); font-size: 16px; margin-top: 15px;">💰 ${data.wager * 2} سکه بردی!</p>`;
+            } else if (data.winner_id !== null) {
+                emoji = '😔';
+                title = 'باختی!';
+                color = '#ef4444';
+                coinText = `<p style="color: #ef4444; font-size: 16px; margin-top: 15px;">💰 ${data.wager} سکه باختی</p>`;
+            } else {
+                coinText = `<p style="color: var(--color-yellow); font-size: 16px; margin-top: 15px;">💰 هر کدوم ${data.wager} سکه پس گرفتید</p>`;
+            }
+            
+            const myCorrect = data.i_am_creator ? data.creator_correct : data.opponent_correct;
+            const oppCorrect = data.i_am_creator ? data.opponent_correct : data.creator_correct;
+            const myName = data.i_am_creator ? data.creator_name : data.opponent_name;
+            const oppName = data.i_am_creator ? data.opponent_name : data.creator_name;
+            
+            document.getElementById('content').innerHTML = `
+                <div class="battle-result">
+                    <div class="big-emoji">${emoji}</div>
+                    <h2 class="title" style="color: ${color};">${title}</h2>
+                    
+                    <div class="score-row">
+                        <div class="score-box">
+                            <div class="score-value" style="color: var(--color-green);">${myCorrect}</div>
+                            <div class="score-label">من (${myName})</div>
+                        </div>
+                        <div class="score-box" style="display: flex; align-items: center; justify-content: center; font-size: 24px; color: var(--text-muted);">vs</div>
+                        <div class="score-box">
+                            <div class="score-value" style="color: #ef4444;">${oppCorrect}</div>
+                            <div class="score-label">حریف (${oppName})</div>
+                        </div>
+                    </div>
+                    
+                    ${coinText}
+                    
+                    <button class="primary-btn" style="margin-top: 30px;" onclick="loadMainMenu()">🔄 نبرد جدید</button>
+                    <button class="secondary-btn" style="margin-top: 10px; width: 100%;" onclick="window.location.href='/?user=' + userId">🏠 بازگشت به داشبورد</button>
+                </div>
+            `;
+        }
+
+        function copyCode(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                showToast("✅ کد کپی شد!", "success");
+            }).catch(() => {
+                showToast("کد: " + code, "info");
+            });
+        }
+
+        loadMainMenu();
+    </script>
+</body>
+</html>

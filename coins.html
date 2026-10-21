@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سکه‌ها | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>💰 سکه‌های من</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        async function loadCoins() {
+            try {
+                const res = await fetch(`/api/coins/${userId}`);
+                const data = await res.json();
+                
+                document.getElementById('content').innerHTML = `
+                    <div class="box" style="text-align: center;">
+                        <div style="font-size: 80px; margin-bottom: 20px;">💰</div>
+                        <h2 style="color: var(--color-yellow); font-size: 48px; margin-bottom: 10px;">${data.coins}</h2>
+                        <p style="color: var(--text-muted);">سکه داری</p>
+                    </div>
+                    
+                    <div class="box">
+                        <h3>💡 سکه‌ها به چه دردی می‌خورن؟</h3>
+                        <ul style="list-style: none; padding: 0; color: var(--text-main); line-height: 2;">
+                            <li>🎯 با هر آزمون نمره‌ی بالای ۹۰٪، ۱۵ سکه می‌گیری.</li>
+                            <li>⚔️ در نبرد ۱ به ۱، برنده ۲۰ سکه می‌گیره.</li>
+                            <li>🏆 با شرکت در لیگ ماهانه، به برترین‌ها سکه تعلق می‌گیره.</li>
+                            <li>🎁 با انجام مأموریت‌های روزانه، سکه هدیه بگیر.</li>
+                            <li>🌟 با جمع کردن ستاره، سکه‌ی بیشتری بگیر.</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="box">
+                        <h3>💎 سکه‌ها رو چطوری خرج کنم؟</h3>
+                        <p style="color: var(--text-main); line-height: 1.8;">
+                            هر سکه معادل <b>${data.coin_to_toman.toLocaleString()}</b> تومانه و می‌تونی توی خرید اشتراک ازش استفاده کنی (تا سقف ${data.coin_discount_percent}٪ تخفیف).
+                        </p>
+                    </div>
+                `;
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="box" style="color:#ef4444;">❌ خطا در بارگذاری</div>`;
+            }
+        }
+
+        loadCoins();
+    </script>
+</body>
+</html>

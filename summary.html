@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>خلاصه‌ساز | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <style>
+        .summary-item { background: var(--bg-input); padding: 15px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; border: 1px solid var(--border-color); color: var(--text-main); }
+        .summary-item:hover { background: var(--bg-card-hover); }
+        .summary-text { white-space: pre-wrap; line-height: 1.8; margin-top: 15px; color: var(--text-main); }
+        
+        /* استایل دکمه‌های داخل فرم‌ها (برای هماهنگی با تم روشن/تیره) */
+        .btn-secondary-custom {
+            background: var(--bg-input);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 8px;
+            width: 100%;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.2s;
+        }
+        .btn-secondary-custom:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--color-blue);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>📝 خلاصه‌ساز</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        async function loadMenu() {
+            document.getElementById('content').innerHTML = `
+                <div class="box">
+                    <button class="primary-btn" onclick="showNewForm()">➕ خلاصه جدید</button>
+                    <button class="btn-secondary-custom" onclick="loadList()">📖 خلاصه‌های من</button>
+                </div>
+            `;
+        }
+
+        function showNewForm() {
+            const savedTitle = localStorage.getItem('ojGam_draft_summary_title') || '';
+            const savedSubject = localStorage.getItem('ojGam_draft_summary_subject') || '';
+            const savedText = localStorage.getItem('ojGam_draft_summary_text') || '';
+
+            document.getElementById('content').innerHTML = `
+                <div class="box">
+                    <h3>خلاصه جدید</h3>
+                    <div class="form-group">
+                        <label>عنوان</label>
+                        <input type="text" id="title" placeholder="مثلاً فصل ۱ ریاضی" value="${savedTitle}" oninput="saveDraft()">
+                    </div>
+                    <div class="form-group">
+                        <label>درس (اختیاری)</label>
+                        <input type="text" id="subject" placeholder="مثلاً ریاضی" value="${savedSubject}" oninput="saveDraft()">
+                    </div>
+                    <div class="form-group">
+                        <label>متن درسی</label>
+                        <textarea id="text" placeholder="متن خود را اینجا بچسبانید..." oninput="saveDraft()">${savedText}</textarea>
+                    </div>
+                    <button class="primary-btn" onclick="createSummary()">🚀 ساخت خلاصه</button>
+                    ${savedText ? `<button class="btn-secondary-custom" onclick="clearDraft()">🗑️ پاک کردن پیش‌نویس</button>` : ''}
+                </div>
+            `;
+        }
+
+        function saveDraft() {
+            localStorage.setItem('ojGam_draft_summary_title', document.getElementById('title').value);
+            localStorage.setItem('ojGam_draft_summary_subject', document.getElementById('subject').value);
+            localStorage.setItem('ojGam_draft_summary_text', document.getElementById('text').value);
+        }
+
+        function clearDraft() {
+            localStorage.removeItem('ojGam_draft_summary_title');
+            localStorage.removeItem('ojGam_draft_summary_subject');
+            localStorage.removeItem('ojGam_draft_summary_text');
+            showNewForm();
+        }
+
+        async function createSummary() {
+            const title = document.getElementById('title').value;
+            const subject = document.getElementById('subject').value;
+            const text = document.getElementById('text').value;
+
+            if (!title || !text) return showToast("عنوان و متن الزامی است", "warning");
+
+            document.getElementById('content').innerHTML = `<div class="box" style="text-align:center;">⏳ در حال ساخت خلاصه با هوش مصنوعی...</div>`;
+
+            try {
+                const res = await fetch(`/api/summary/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, subject, text })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    clearDraft();
+                    document.getElementById('content').innerHTML = `
+                        <div class="box">
+                            <h3>✅ خلاصه آماده شد!</h3>
+                            <div class="summary-text">${data.summary_text}</div>
+                            <button class="primary-btn" style="margin-top:20px;" onclick="loadMenu()">بازگشت</button>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('content').innerHTML = `<div class="box" style="color:#ef4444;">❌ خطا: ${data.detail}</div>`;
+                }
+            } catch (err) {
+                document.getElementById('content').innerHTML = `<div class="box" style="color:#ef4444;">❌ خطا در ارتباط با سرور</div>`;
+            }
+        }
+
+        async function loadList() {
+            const res = await fetch(`/api/summaries/${userId}`);
+            const data = await res.json();
+            const container = document.getElementById('content');
+
+            if (data.summaries.length === 0) {
+                container.innerHTML = `<div class="box" style="text-align:center;">هنوز خلاصه‌ای نساختی!</div>`;
+                return;
+            }
+
+            let html = `<div class="box"><h3>📖 خلاصه‌های من</h3>`;
+            data.summaries.forEach(s => {
+                html += `<div class="summary-item" onclick="viewSummary(${s.id})">
+                    <b>${s.title}</b> — ${s.subject} <span style="float:left; color:var(--text-muted);">${s.date}</span>
+                </div>`;
+            });
+            html += `<button class="primary-btn" style="margin-top:20px;" onclick="showNewForm()">➕ خلاصه جدید</button></div>`;
+            container.innerHTML = html;
+        }
+
+        async function viewSummary(id) {
+            const res = await fetch(`/api/summaries/${userId}/${id}`);
+            const data = await res.json();
+            document.getElementById('content').innerHTML = `
+                <div class="box">
+                    <h3>${data.title}</h3>
+                    <p style="color:var(--text-muted);">${data.subject} — ${data.date}</p>
+                    <div class="summary-text">${data.text}</div>
+                    <button class="primary-btn" style="background:#ef4444; margin-top:20px;" onclick="deleteSummary(${id})">🗑️ حذف</button>
+                    <button class="btn-secondary-custom" onclick="loadList()">بازگشت به لیست</button>
+                </div>
+            `;
+        }
+
+        async function deleteSummary(id) {
+            if (!confirm("مطمئنی؟")) return;
+            await fetch(`/api/summaries/${userId}/${id}`, { method: 'DELETE' });
+            loadList();
+        }
+
+        loadMenu();
+    </script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>گروه مطالعه | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <style>
+        .back-btn { background: transparent; border: none; color: var(--text-muted); font-family: inherit; font-size: 16px; cursor: pointer; margin-bottom: 20px; padding: 10px; }
+        
+        .primary-btn { background: var(--color-blue); color: white; border: none; padding: 15px; border-radius: 8px; width: 100%; font-family: inherit; font-weight: bold; cursor: pointer; font-size: 16px; transition: all 0.2s; }
+        .primary-btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        .primary-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        
+        .secondary-btn { background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; width: 100%; font-family: inherit; cursor: pointer; margin-top: 8px; transition: all 0.2s; }
+        .secondary-btn:hover { background: var(--bg-card-hover); border-color: var(--color-blue); }
+        
+        .danger-btn { background: #ef4444; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-family: inherit; cursor: pointer; margin-top: 8px; transition: all 0.2s; }
+        .danger-btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 14px; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main); font-family: inherit; font-size: 14px; transition: all 0.2s; }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--color-blue); box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2); }
+
+        .code-box { background: var(--bg-input); padding: 15px; border-radius: 10px; text-align: center; font-size: 24px; font-family: monospace; border: 2px dashed var(--color-blue); margin: 10px 0; letter-spacing: 4px; color: var(--color-blue); font-weight: bold; }
+        
+        .member-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+        .member-item:last-child { border-bottom: none; }
+        .member-rank { font-size: 20px; min-width: 35px; }
+        .member-info { flex: 1; }
+        .member-name { font-weight: bold; color: var(--text-main); }
+        .member-stat { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .me-badge { background: var(--color-blue); color: white; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-right: 5px; }
+        .owner-badge { background: var(--color-yellow); color: #451a03; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-right: 5px; }
+        
+        .progress-bar { background: var(--bg-input); height: 24px; border-radius: 12px; overflow: hidden; margin: 10px 0; border: 1px solid var(--border-color); }
+        .progress-fill { background: linear-gradient(90deg, var(--color-blue), var(--color-green)); height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold; }
+        
+        .stats-row { display: flex; gap: 10px; margin: 15px 0; }
+        .stat-box { flex: 1; background: var(--bg-card); padding: 15px; border-radius: 10px; text-align: center; border: 1px solid var(--border-color); }
+        .stat-value { font-size: 22px; font-weight: bold; color: var(--color-blue); }
+        .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; background: var(--bg-input); color: var(--text-muted); cursor: pointer; font-family: inherit; font-size: 14px; transition: all 0.2s; font-weight: bold; }
+        .tab-btn.active { background: var(--color-blue); color: white; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3); }
+        
+        .info-text { font-size: 13px; color: var(--text-muted); line-height: 1.8; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>👥 گروه مطالعه</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        let groupData = null;
+        let currentTab = 'create';
+
+        async function load() {
+            document.getElementById('content').innerHTML = `<div class="box" style="text-align:center;">⏳ در حال بارگذاری...</div>`;
+            
+            try {
+                const res = await fetch(`/api/groups/${userId}`);
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    document.getElementById('content').innerHTML = `<div class="box" style="color:#ef4444;">❌ ${data.detail}</div>`;
+                    return;
+                }
+                
+                groupData = data;
+                
+                if (!data.in_group) {
+                    renderNoGroup(data);
+                } else {
+                    renderGroup(data);
+                }
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="box" style="color:#ef4444;">❌ خطا در ارتباط با سرور</div>`;
+            }
+        }
+
+        function renderNoGroup(data) {
+            document.getElementById('content').innerHTML = `
+                <div class="box">
+                    <h3>🎯 هنوز توی هیچ گروهی نیستی!</h3>
+                    <p class="info-text">گروه مطالعه یه راه عالیه برای رقابت با دوستانت و افزایش انگیزه. تو می‌تونی گروه بسازی یا به گروه دوستت بپیوندی.</p>
+                </div>
+                
+                <div class="tabs">
+                    <button class="tab-btn ${currentTab === 'create' ? 'active' : ''}" id="tab-create" onclick="switchTab('create')">➕ ساخت گروه</button>
+                    <button class="tab-btn ${currentTab === 'join' ? 'active' : ''}" id="tab-join" onclick="switchTab('join')">🔗 پیوستن</button>
+                </div>
+                
+                <div id="formArea"></div>
+            `;
+            
+            if (currentTab === 'create') {
+                showCreateForm();
+            } else {
+                showJoinForm();
+            }
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-create').classList.toggle('active', tab === 'create');
+            document.getElementById('tab-join').classList.toggle('active', tab === 'join');
+            
+            if (tab === 'create') {
+                showCreateForm();
+            } else {
+                showJoinForm();
+            }
+        }
+
+        function showCreateForm() {
+            document.getElementById('formArea').innerHTML = `
+                <div class="box">
+                    <h3>➕ ساخت گروه جدید</h3>
+                    <div class="form-group">
+                        <label>اسم گروه</label>
+                        <input type="text" id="groupName" placeholder="مثلاً کنکوری‌های ۱۴۰۴" maxlength="30">
+                    </div>
+                    <button class="primary-btn" onclick="createGroup()">🎯 ساخت گروه</button>
+                    <p class="info-text">وقتی گروه بسازی، یه کد ۶ رقمی برات ساخته می‌شه که می‌تونی به دوستات بدی تا بهت بپیوندن.</p>
+                </div>
+            `;
+        }
+
+        function showJoinForm() {
+            document.getElementById('formArea').innerHTML = `
+                <div class="box">
+                    <h3>🔗 پیوستن به گروه</h3>
+                    <div class="form-group">
+                        <label>کد گروه (۶ رقم)</label>
+                        <input type="text" id="joinCode" placeholder="مثلاً 123456" maxlength="6" pattern="[0-9]{6}">
+                    </div>
+                    <button class="primary-btn" onclick="joinGroup()">🎯 پیوستن</button>
+                    <p class="info-text">کد گروه رو از دوستت بگیر و اینجا وارد کن.</p>
+                </div>
+            `;
+        }
+
+        async function createGroup() {
+            const name = document.getElementById('groupName').value.trim();
+            if (!name || name.length < 2) return showToast("اسم گروه باید حداقل ۲ کاراکتر باشه", "warning");
+            
+            try {
+                const res = await fetch(`/api/groups/create/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showToast(`✅ گروه «${name}» ساخته شد! کد: ${data.code}`, "success");
+                    load();
+                } else {
+                    showToast("❌ " + data.detail, "error");
+                }
+            } catch (e) {
+                showToast("❌ خطا در ارتباط با سرور", "error");
+            }
+        }
+
+        async function joinGroup() {
+            const code = document.getElementById('joinCode').value.trim();
+            if (!code || code.length !== 6 || !/^\d+$/.test(code)) return showToast("کد باید ۶ رقم باشه", "warning");
+            
+            try {
+                const res = await fetch(`/api/groups/join/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showToast(`✅ به گروه «${data.message}» پیوستی!`, "success");
+                    load();
+                } else {
+                    showToast("❌ " + data.detail, "error");
+                }
+            } catch (e) {
+                showToast("❌ خطا در ارتباط با سرور", "error");
+            }
+        }
+
+        function renderGroup(data) {
+            const g = data.group;
+            
+            let membersHtml = '';
+            for (const m of data.members) {
+                let medal = "⬜";
+                if (m.rank === 1) medal = "🥇";
+                else if (m.rank === 2) medal = "🥈";
+                else if (m.rank === 3) medal = "🥉";
+                else medal = `${m.rank}.`;
+                
+                let badges = '';
+                if (m.is_me) badges += '<span class="me-badge">من</span>';
+                if (m.is_owner) badges += '<span class="owner-badge">👑 مالک</span>';
+                
+                membersHtml += `
+                    <div class="member-item">
+                        <span class="member-rank">${medal}</span>
+                        <div class="member-info">
+                            <div class="member-name">${m.name}${badges}</div>
+                            <div class="member-stat">🏆 ${m.league_points} امتیاز • 📚 ${m.study_str}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            let challengeHtml = '';
+            if (data.challenge) {
+                const c = data.challenge;
+                challengeHtml = `
+                    <div class="box">
+                        <h3>🎯 چالش فعال گروه</h3>
+                        <p style="margin: 8px 0; color: var(--text-main);"><b>${c.type_name}</b></p>
+                        <p style="font-size: 13px; color: var(--text-muted);">⏰ ${c.duration_name} — تا ${c.end_date}</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${c.percent}%;">${c.percent}%</div>
+                        </div>
+                        <p style="text-align: center; font-size: 14px; color: var(--text-main);">📊 ${c.current} از ${c.goal} ${c.unit}</p>
+                        ${data.is_owner ? `<button class="danger-btn" onclick="cancelChallenge()" style="margin-top: 15px;">🗑️ لغو چالش</button>` : ''}
+                    </div>
+                `;
+            } else if (data.is_owner) {
+                challengeHtml = `
+                    <div class="box" style="border: 2px dashed var(--color-blue);">
+                        <h3>🎯 چالش جدید</h3>
+                        <p class="info-text">هنوز چالشی برای گروهت نساختی. یه چالش بساز تا اعضا با هم رقابت کنن!</p>
+                        <button class="primary-btn" style="margin-top: 15px;" onclick="showChallengeForm()">➕ ساخت چالش</button>
+                    </div>
+                `;
+            } else {
+                challengeHtml = `
+                    <div class="box" style="text-align: center;">
+                        <p style="color: var(--text-muted);">⏳ هنوز چالشی برای این گروه ساخته نشده. منتظر مالک گروه باش!</p>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('content').innerHTML = `
+                <div class="box" style="text-align: center;">
+                    <h3 style="font-size: 24px; color: var(--color-blue);">${g.name}</h3>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-top: 5px;">📅 ساخته شده در ${g.created_at}</p>
+                </div>
+                
+                <div class="box">
+                    <h3>📝 کد گروه</h3>
+                    <div class="code-box">${g.code}</div>
+                    <p class="info-text" style="text-align: center;">این کد رو به دوستات بده تا بهت بپیوندن.</p>
+                    <button class="secondary-btn" onclick="copyCode('${g.code}')">📋 کپی کد</button>
+                </div>
+                
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <div class="stat-value">${data.members_count}/${data.max_members}</div>
+                        <div class="stat-label">👥 اعضا</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${data.total_points}</div>
+                        <div class="stat-label">🏆 امتیاز کل</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">${data.total_hours}</div>
+                        <div class="stat-label">⏰ ساعت مطالعه</div>
+                    </div>
+                </div>
+                
+                ${challengeHtml}
+                
+                <div class="box">
+                    <h3>🏆 لیدربورد گروه</h3>
+                    ${membersHtml}
+                </div>
+                
+                <div class="box">
+                    <button class="danger-btn" onclick="leaveGroup()">🚪 ترک گروه</button>
+                </div>
+            `;
+        }
+
+        function copyCode(code) {
+            navigator.clipboard.writeText(code).then(() => {
+                showToast("✅ کد کپی شد!", "success");
+            }).catch(() => {
+                showToast("کد: " + code, "info");
+            });
+        }
+
+        async function leaveGroup() {
+            if (!confirm("مطمئنی می‌خوای از گروه خارج بشی؟")) return;
+            
+            if (groupData.is_owner) {
+                if (!confirm("⚠️ تو مالک گروهی! اگه خارج بشی، کل گروه حذف می‌شه. مطمئنی؟")) return;
+            }
+            
+            try {
+                const res = await fetch(`/api/groups/leave/${userId}`, { method: 'POST' });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showToast("✅ " + data.message, "success");
+                    load();
+                } else {
+                    showToast("❌ " + data.detail, "error");
+                }
+            } catch (e) {
+                showToast("❌ خطا در ارتباط با سرور", "error");
+            }
+        }
+
+        function showChallengeForm() {
+            let typeOptions = '';
+            for (const t of groupData.challenge_types) {
+                typeOptions += `<option value="${t.key}" data-unit="${t.unit}" data-default="${t.default_goal}">${t.name}</option>`;
+            }
+            
+            let durationOptions = '';
+            for (const d of groupData.challenge_durations) {
+                durationOptions += `<option value="${d.key}">${d.name}</option>`;
+            }
+            
+            document.getElementById('content').innerHTML = `
+                <div class="box">
+                    <h3>🎯 ساخت چالش گروهی</h3>
+                    
+                    <div class="form-group">
+                        <label>نوع چالش</label>
+                        <select id="challengeType" onchange="updateGoalHint()">
+                            ${typeOptions}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>هدف <span id="goalUnit" style="color: var(--color-blue);"></span></label>
+                        <input type="number" id="goalValue" min="1" value="${groupData.challenge_types[0]?.default_goal || 10}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>مدت</label>
+                        <select id="durationType">
+                            ${durationOptions}
+                        </select>
+                    </div>
+                    
+                    <button class="primary-btn" onclick="submitChallenge()">✅ ساخت چالش</button>
+                    <button class="secondary-btn" onclick="load()">❌ لغو</button>
+                </div>
+            `;
+            
+            updateGoalHint();
+        }
+
+        function updateGoalHint() {
+            const select = document.getElementById('challengeType');
+            const option = select.options[select.selectedIndex];
+            const unit = option.getAttribute('data-unit');
+            const defaultGoal = option.getAttribute('data-default');
+            document.getElementById('goalUnit').textContent = `(${unit})`;
+            document.getElementById('goalValue').value = defaultGoal;
+        }
+
+        async function submitChallenge() {
+            const type = document.getElementById('challengeType').value;
+            const goal = parseInt(document.getElementById('goalValue').value);
+            const duration = document.getElementById('durationType').value;
+            
+            if (!goal || goal < 1) return showToast("هدف باید حداقل ۱ باشه", "warning");
+            
+            try {
+                const res = await fetch(`/api/groups/challenge/create/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        challenge_type: type,
+                        goal_value: goal,
+                        duration_type: duration
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showToast("✅ چالش با موفقیت ساخته شد!", "success");
+                    load();
+                } else {
+                    showToast("❌ " + data.detail, "error");
+                }
+            } catch (e) {
+                showToast("❌ خطا در ارتباط با سرور", "error");
+            }
+        }
+
+        async function cancelChallenge() {
+            if (!confirm("مطمئنی می‌خوای چالش رو لغو کنی؟")) return;
+            
+            try {
+                const res = await fetch(`/api/groups/challenge/cancel/${userId}`, { method: 'POST' });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    showToast("✅ چالش لغو شد", "success");
+                    load();
+                } else {
+                    showToast("❌ " + data.detail, "error");
+                }
+            } catch (e) {
+                showToast("❌ خطا در ارتباط با سرور", "error");
+            }
+        }
+
+        load();
+    </script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ثبت‌نام | StudyBot</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-section">
+            <h1>📚 StudyBot</h1>
+            <p>به جمع ما خوش اومدی! برای شروع، ثبت‌نام کن.</p>
+            
+            <input type="text" id="firstName" placeholder="اسمت چیه؟">
+            <input type="text" id="phoneNumber" placeholder="شماره موبایل (مثلاً 09123456789)" maxlength="11">
+            
+            <button class="primary-btn" onclick="register()">ثبت‌نام</button>
+            
+            <p style="margin-top: 20px; font-size: 13px;">
+                قبلاً ثبت‌نام کردی؟ 
+                <a href="/" style="color: var(--color-blue); font-weight: bold; text-decoration: none;">وارد شو</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        async function register() {
+            const firstName = document.getElementById('firstName').value.trim();
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+
+            if (!firstName || firstName.length < 2) {
+                return alert("لطفاً اسمت رو وارد کن");
+            }
+
+            if (!phoneNumber || phoneNumber.length !== 11 || !/^09\d{9}$/.test(phoneNumber)) {
+                return alert("شماره موبایل باید ۱۱ رقم و با ۰۹ شروع بشه");
+            }
+
+            try {
+                // ثبت‌نام در دیتابیس (از همون API قبلی استفاده می‌کنیم)
+                const res = await fetch(`/api/user/register?telegram_id=${phoneNumber}&first_name=${encodeURIComponent(firstName)}&username=`, {
+                    method: 'POST'
+                });
+
+                if (res.ok) {
+                    alert("✅ ثبت‌نام با موفقیت انجام شد! حالا وارد شو.");
+                    window.location.href = `/?user=${phoneNumber}`;
+                } else {
+                    const data = await res.json();
+                    alert("❌ خطا: " + (data.detail || "مشکلی پیش اومد"));
+                }
+            } catch (e) {
+                alert("❌ خطا در ارتباط با سرور");
+            }
+        }
+    </script>
+</body>
+</html>

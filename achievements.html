@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دستاوردها | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>🏅 دستاوردهای من</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        async function loadAchievements() {
+            try {
+                const res = await fetch(`/api/achievements/${userId}`);
+                const data = await res.json();
+                
+                const text = data.text || "هنوز دستاوردی نداری.";
+                const lines = text.split('\n').filter(l => l.trim() !== '');
+                
+                let html = '';
+                for (const line of lines) {
+                    if (line.startsWith('**') || line.includes('دستاوردهای تو')) {
+                        html += `<h2 style="color: var(--color-yellow); margin: 20px 0 10px 0; font-size: 18px;">${line}</h2>`;
+                    } else if (line.startsWith('✅')) {
+                        html += `<div class="box" style="border-right: 4px solid var(--color-green); padding: 12px; font-size: 14px;">${line}</div>`;
+                    } else if (line.startsWith('🔒')) {
+                        html += `<div class="box" style="border-right: 4px solid var(--text-muted); padding: 12px; font-size: 14px; opacity: 0.7;">${line}</div>`;
+                    } else {
+                        html += `<p style="margin: 10px 0; color: var(--text-main); font-size: 14px;">${line}</p>`;
+                    }
+                }
+                
+                document.getElementById('content').innerHTML = `<div style="padding-bottom: 20px;">${html}</div>`;
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="box" style="color:#ef4444;">❌ خطا در بارگذاری</div>`;
+            }
+        }
+
+        loadAchievements();
+    </script>
+</body>
+</html>

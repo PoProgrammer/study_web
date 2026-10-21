@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مطالعه | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <style>
+        .back-btn { background: transparent; border: none; color: var(--text-muted); font-family: inherit; font-size: 16px; cursor: pointer; margin-bottom: 20px; padding: 10px; }
+        
+        .subject-btn {
+            display: block; width: 100%; padding: 15px; margin-bottom: 10px;
+            border-radius: 10px; background: var(--bg-input); color: var(--text-main);
+            border: 1px solid var(--border-color); font-family: inherit; font-size: 15px;
+            cursor: pointer; text-align: right; transition: all 0.2s;
+        }
+        .subject-btn:hover { border-color: var(--color-blue); background: var(--bg-card-hover); }
+
+        .timer-box {
+            background: var(--bg-card); padding: 30px; border-radius: 20px;
+            text-align: center; border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+        }
+        .timer-display {
+            font-size: 48px; font-weight: 900; font-family: monospace;
+            color: var(--color-blue); direction: ltr; margin: 20px 0;
+        }
+        .timer-status { font-size: 16px; color: var(--text-muted); }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 14px; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 12px; border-radius: 8px;
+            border: 1px solid var(--border-color); background: var(--bg-input);
+            color: var(--text-main); font-family: inherit; font-size: 14px;
+        }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--color-blue); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>⏱️ مطالعه</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        let sessionId = null;
+        let timerInterval = null;
+        let currentSeconds = 0;
+        let subjectIdForExam = null;
+        let chapterForExam = null;
+
+        // بارگذاری لیست درس‌ها
+        async function loadSubjects() {
+            try {
+                const res = await fetch(`/api/subjects/${userId}`);
+                const subjects = await res.json();
+                
+                let html = `<div class="box" style="margin-top:20px;"><h3>📚 یه درس انتخاب کن:</h3>`;
+                
+                if (subjects.length === 0) {
+                    html += `<p style="text-align:center; color:var(--text-muted);">هنوز درسی اضافه نکردی.</p>`;
+                } else {
+                    for (const s of subjects) {
+                        const label = s.field ? `📖 ${s.book} — ${s.grade} ${s.field}` : `📖 ${s.book} — ${s.grade}`;
+                        html += `<button class="subject-btn" onclick="showChapters(${s.id}, '${s.book}')">${label}</button>`;
+                    }
+                }
+                html += `</div>`;
+                document.getElementById('content').innerHTML = html;
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="box">خطا در بارگذاری درس‌ها</div>`;
+            }
+        }
+
+        // نمایش فرم انتخاب فصل و زمان
+        function showChapters(subjectId, bookName) {
+            document.getElementById('content').innerHTML = `
+                <div class="box">
+                    <h3>📖 ${bookName}</h3>
+                    <div class="form-group">
+                        <label>اسم فصل یا مبحث:</label>
+                        <input type="text" id="chapterName" placeholder="مثلاً فصل ۱ - حرکت شناسی">
+                    </div>
+                    <div class="form-group">
+                        <label>مدت زمان (دقیقه):</label>
+                        <select id="durationSelect">
+                            <option value="15">۱۵ دقیقه</option>
+                            <option value="30" selected>۳۰ دقیقه</option>
+                            <option value="45">۴۵ دقیقه</option>
+                            <option value="60">۶۰ دقیقه</option>
+                            <option value="90">۹۰ دقیقه</option>
+                        </select>
+                    </div>
+                    <button class="primary-btn" onclick="startTimer(${subjectId})">▶️ شروع مطالعه</button>
+                    <button class="secondary-btn" onclick="loadSubjects()" style="margin-top:10px;">بازگشت</button>
+                </div>
+            `;
+        }
+
+        // شروع تایمر
+        async function startTimer(subjectId) {
+            const chapter = document.getElementById('chapterName').value;
+            const duration = parseInt(document.getElementById('durationSelect').value);
+            
+            if (!chapter) return showToast("اسم فصل رو وارد کن", "warning");
+
+            subjectIdForExam = subjectId;
+            chapterForExam = chapter;
+
+            try {
+                const res = await fetch(`/api/study/start/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subject_id: subjectId, chapter: chapter, duration: duration })
+                });
+                
+                if (!res.ok) {
+                    showToast("خطا در شروع مطالعه", "error");
+                    return;
+                }
+                
+                const data = await res.json();
+                sessionId = data.session_id;
+                
+                currentSeconds = duration * 60;
+                startTimerLoop();
+                
+            } catch (e) {
+                showToast("خطا در ارتباط با سرور", "error");
+            }
+        }
+
+        // تایمر بدون دکمه لغو
+        function startTimerLoop() {
+            const display = document.createElement('div');
+            display.className = 'timer-box';
+            display.innerHTML = `
+                <div class="timer-display" id="timerDisplay">00:00:00</div>
+                <div class="timer-status">⏳ در حال مطالعه... تمرکز کن!</div>
+            `;
+            document.getElementById('content').innerHTML = '';
+            document.getElementById('content').appendChild(display);
+            
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                if (currentSeconds > 0) {
+                    currentSeconds--;
+                    updateTimerDisplay();
+                } else {
+                    finishSession();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const h = Math.floor(currentSeconds / 3600);
+            const m = Math.floor((currentSeconds % 3600) / 60);
+            const s = currentSeconds % 60;
+            const display = document.getElementById('timerDisplay');
+            if (display) {
+                display.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+        }
+
+        // پایان مطالعه و نمایش صفحه تبریک با دکمه آزمون
+        async function finishSession() {
+            if (!sessionId) return;
+            clearInterval(timerInterval);
+            
+            try {
+                const res = await fetch(`/api/study/finish/${sessionId}`, {
+                    method: 'POST'
+                });
+                const data = await res.json();
+                
+                document.getElementById('content').innerHTML = `
+                    <div class="box" style="text-align:center;">
+                        <h3 style="color: var(--color-green);">🎉 تبریک!</h3>
+                        <p style="color: var(--text-main); margin-top: 15px;">شما با موفقیت مطالعه رو ثبت کردید.</p>
+                        ${data.points ? `<p style="color: var(--color-yellow); margin-top: 10px;">+${data.points} امتیاز لیگ</p>` : ''}
+                        
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;">
+                            <button class="primary-btn" style="background: var(--color-blue);" onclick="goToExam()">📝 برو به آزمون</button>
+                            <button class="secondary-btn" onclick="loadSubjects()">🔄 بازگشت به درس‌ها</button>
+                        </div>
+                    </div>
+                `;
+            } catch (e) {
+                showToast("خطا در ثبت مطالعه", "error");
+            }
+        }
+
+        // انتقال به صفحه آزمون
+        function goToExam() {
+            if (subjectIdForExam && chapterForExam) {
+                window.location.href = `/exam?user=${userId}&subject_id=${subjectIdForExam}&chapter=${encodeURIComponent(chapterForExam)}`;
+            } else {
+                window.location.href = '/';
+            }
+        }
+
+        loadSubjects();
+    </script>
+</body>
+</html>

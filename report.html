@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>کارنامه | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>📊 کارنامه من</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        async function loadReport() {
+            try {
+                const res = await fetch(`/api/report/${userId}`);
+                const data = await res.json();
+                
+                if (!data.has_data) {
+                    document.getElementById('content').innerHTML = `
+                        <div class="box" style="text-align: center;">
+                            <h3>هنوز هیچ امتحانی ندادی!</h3>
+                            <p style="color: var(--text-muted); margin-top: 10px;">اول یه آزمون بده تا کارنامه‌ت ساخته بشه.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let strengthsHtml = '';
+                if (data.strengths && data.strengths.length > 0) {
+                    data.strengths.forEach(s => {
+                        strengthsHtml += `<li style="color: var(--color-green); margin-bottom: 5px;">✅ ${s.label} (${s.avg}%)</li>`;
+                    });
+                } else {
+                    strengthsHtml = `<li style="color: var(--text-muted);">هنوز نقطه‌ی قوتی ندارید.</li>`;
+                }
+
+                let weaknessesHtml = '';
+                if (data.weaknesses && data.weaknesses.length > 0) {
+                    data.weaknesses.forEach(s => {
+                        weaknessesHtml += `<li style="color: #ef4444; margin-bottom: 5px;">⚠️ ${s.label} (${s.avg}%)</li>`;
+                    });
+                } else {
+                    weaknessesHtml = `<li style="color: var(--text-muted);">هنوز نقطه‌ی ضعفی ندارید.</li>`;
+                }
+
+                document.getElementById('content').innerHTML = `
+                    <div class="stats-row" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <div class="box" style="flex: 1; text-align: center; padding: 15px;">
+                            <div style="font-size: 24px; font-weight: bold; color: var(--color-blue);">${data.total_count}</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">کل آزمون‌ها</div>
+                        </div>
+                        <div class="box" style="flex: 1; text-align: center; padding: 15px;">
+                            <div style="font-size: 24px; font-weight: bold; color: var(--color-green);">${data.avg}%</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">میانگین</div>
+                        </div>
+                    </div>
+
+                    <div class="box">
+                        <h3>📈 نمودار پیشرفت</h3>
+                        <img src="${data.chart_url}" style="width: 100%; border-radius: 10px; margin-top: 10px;" alt="نمودار">
+                    </div>
+
+                    <div class="box">
+                        <h3>💪 نقاط قوت</h3>
+                        <ul style="list-style: none; padding: 0; line-height: 2;">${strengthsHtml}</ul>
+                    </div>
+
+                    <div class="box">
+                        <h3>📉 نقاط ضعف</h3>
+                        <ul style="list-style: none; padding: 0; line-height: 2;">${weaknessesHtml}</ul>
+                    </div>
+                `;
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="box" style="color:#ef4444;">❌ خطا در بارگذاری</div>`;
+            }
+        }
+
+        loadReport();
+    </script>
+</body>
+</html>

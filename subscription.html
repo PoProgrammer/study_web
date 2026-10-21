@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اشتراک | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <style>
+        .back-btn { background: transparent; border: none; color: var(--text-muted); font-family: inherit; font-size: 16px; cursor: pointer; margin-bottom: 20px; padding: 10px; }
+        .box { background: var(--bg-card); padding: 20px; border-radius: 15px; margin-bottom: 15px; border: 1px solid var(--border-color); }
+        .plan-card {
+            background: var(--bg-card); padding: 20px; border-radius: 15px; margin-bottom: 15px;
+            border: 2px solid var(--border-color); cursor: pointer; transition: all 0.2s;
+        }
+        .plan-card:hover { border-color: var(--color-blue); transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .plan-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .plan-header .icon { font-size: 32px; }
+        .plan-header h3 { margin: 0; font-size: 20px; }
+        .plan-tagline { color: var(--text-muted); font-size: 13px; margin-bottom: 15px; }
+        .plan-features { list-style: none; padding: 0; margin: 0; }
+        .plan-features li { padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 14px; color: var(--text-main); }
+        .plan-features li:last-child { border-bottom: none; }
+        .plan-btn { display: block; width: 100%; padding: 15px; margin-bottom: 10px; border-radius: 10px; background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-color); font-family: inherit; font-size: 16px; cursor: pointer; text-align: right; transition: all 0.2s; }
+        .plan-btn:hover { border-color: var(--color-blue); background: var(--bg-card-hover); }
+        .price-row { display: flex; justify-content: space-between; margin-bottom: 10px; color: var(--text-main); }
+        .card-info { background: var(--bg-input); padding: 15px; border-radius: 10px; text-align: center; font-family: monospace; margin: 15px 0; color: var(--color-orange); font-size: 18px; border: 1px dashed var(--color-orange); }
+        .status-badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+        .status-pending { background: rgba(245, 158, 11, 0.2); color: var(--color-yellow); }
+        .status-approved { background: rgba(16, 185, 129, 0.2); color: var(--color-green); }
+        .status-rejected { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .history-item { background: var(--bg-input); padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; border: 1px solid var(--border-color); }
+        .history-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: var(--text-main); }
+        .history-details { font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>💎 اشتراک</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        let plansData = [];
+        let durationsData = [];
+        
+        const PLAN_NAMES = { bronze: "برنزی", silver: "نقره‌ای", gold: "طلایی" };
+        const DURATION_NAMES = { "1m": "۱ ماهه", "3m": "۳ ماهه", "6m": "۶ ماهه", "12m": "۱۲ ماهه" };
+        const STATUS_LABELS = { pending: "⏳ در انتظار", approved: "✅ تایید شده", rejected: "❌ رد شده" };
+
+        async function showMainMenu() {
+            try {
+                await fetch(`/api/payment/mark-seen/${userId}`, { method: 'POST' });
+            } catch (e) {}
+
+            let historyHtml = "";
+            try {
+                const statusRes = await fetch(`/api/payment/status/${userId}`);
+                const statusData = await statusRes.json();
+                
+                if (statusData.payments && statusData.payments.length > 0) {
+                    const pending = statusData.payments.filter(p => p.status === 'pending');
+                    if (pending.length > 0) {
+                        historyHtml = `
+                            <div class="box" style="border: 2px solid var(--color-yellow); background: rgba(245, 158, 11, 0.05);">
+                                <h3 style="color: var(--color-yellow);">⏳ پرداخت در انتظار</h3>
+                                <p style="font-size:13px; color:var(--text-muted);">شما ${pending.length} پرداخت در انتظار تایید دارید.</p>
+                            </div>
+                        `;
+                    }
+                    
+                    let historyList = "";
+                    for (const p of statusData.payments.slice(0, 5)) {
+                        const statusLabel = STATUS_LABELS[p.status] || p.status;
+                        const statusClass = "status-" + p.status;
+                        
+                        let details = "";
+                        if (p.sender_card) details += `<div>💳 کارت مبدا: ${p.sender_card}</div>`;
+                        if (p.tracking_code) details += `<div>🔢 شماره پیگیری: ${p.tracking_code}</div>`;
+
+                        historyList += `
+                            <div class="history-item">
+                                <div class="history-header">
+                                    <span>${PLAN_NAMES[p.plan_key] || p.plan_key} — ${DURATION_NAMES[p.duration_key] || p.duration_key}</span>
+                                    <span class="status-badge ${statusClass}">${statusLabel}</span>
+                                </div>
+                                <div class="history-details">
+                                    <div>💰 مبلغ: ${p.final_price.toLocaleString()} تومان | 📅 ${p.created_at}</div>
+                                    ${details}
+                                </div>
+                                ${p.admin_note ? `<div style="font-size:12px; color:#ef4444; margin-top:6px;">📝 پیام ادمین: ${p.admin_note}</div>` : ''}
+                            </div>
+                        `;
+                    }
+                    
+                    historyHtml += `
+                        <div class="box">
+                            <h3>📋 تاریخچه پرداخت‌ها</h3>
+                            ${historyList}
+                        </div>
+                    `;
+                }
+            } catch (e) {}
+            
+            const res = await fetch(`/api/subscription/${userId}`);
+            const data = await res.json();
+            plansData = data.plans;
+            durationsData = data.durations;
+
+            let plansHtml = `<div class="box"><h3>👇 یکی از پلن‌ها رو انتخاب کن:</h3></div>`;
+            for (let p of plansData) {
+                let featuresHtml = p.features.map(f => `<li>${f}</li>`).join("");
+                plansHtml += `
+                    <div class="plan-card" style="border-color:${p.color}33;" onclick="showDurations('${p.key}')">
+                        <div class="plan-header">
+                            <span class="icon">${p.icon}</span>
+                            <h3 style="color:${p.color};">${p.name}</h3>
+                        </div>
+                        <p class="plan-tagline">${p.tagline}</p>
+                        <ul class="plan-features">${featuresHtml}</ul>
+                        <button class="primary-btn" style="margin-top:15px; background:${p.color};">انتخاب این پلن</button>
+                    </div>
+                `;
+            }
+
+            document.getElementById('content').innerHTML = historyHtml + plansHtml;
+        }
+
+        async function showDurations(planKey) {
+            const plan = plansData.find(p => p.key === planKey);
+            let html = `<div class="box"><h3>${plan.icon} پلن ${plan.name}</h3><p style="color:var(--text-muted); font-size:13px;">${plan.tagline}</p><p style="margin-top:15px;">📅 مدت رو انتخاب کن:</p>`;
+
+            for (let d of durationsData) {
+                const res = await fetch(`/api/subscription/price/${planKey}/${d.key}?telegram_id=${userId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    html += `<button class="plan-btn" onclick="showConfirm('${planKey}', '${d.key}')">${d.name} — ${data.final_price_toman.toLocaleString()} تومان</button>`;
+                }
+            }
+
+            html += `<button class="plan-btn" style="background:var(--bg-main);" onclick="showMainMenu()">🔙 بازگشت به پلن‌ها</button></div>`;
+            document.getElementById('content').innerHTML = html;
+        }
+
+        async function showConfirm(planKey, durKey) {
+            const res = await fetch(`/api/subscription/price/${planKey}/${durKey}?telegram_id=${userId}`);
+            const data = await res.json();
+
+            document.getElementById('content').innerHTML = `
+                <div class="box">
+                    <h3>🧾 خلاصه خرید</h3>
+                    <div class="price-row"><span>💰 قیمت پایه:</span><b>${data.base_price.toLocaleString()} تومان</b></div>
+                    ${data.coin_discount_toman > 0 ? `<div class="price-row"><span>🪙 تخفیف سکه:</span><b style="color:var(--color-green);">-${data.coin_discount_toman.toLocaleString()} تومان</b></div>` : ''}
+                    ${data.referral_discount_toman > 0 ? `<div class="price-row"><span>🎁 تخفیف دعوت:</span><b style="color:var(--color-green);">-${data.referral_discount_toman.toLocaleString()} تومان</b></div>` : ''}
+                    ${data.referred_discount_toman > 0 ? `<div class="price-row"><span>🎉 تخفیف اولین خرید:</span><b style="color:var(--color-green);">-${data.referred_discount_toman.toLocaleString()} تومان</b></div>` : ''}
+                    <div class="price-row" style="border-top:1px solid var(--border-color); padding-top:10px; margin-top:10px;"><span>💵 پرداخت نهایی:</span><b style="color:var(--color-orange); font-size: 18px;">${data.final_price_toman.toLocaleString()} تومان</b></div>
+                    <button class="primary-btn" style="margin-top:20px; background:var(--color-green);" onclick="startPayment('${planKey}', '${durKey}')">✅ پرداخت کردم</button>
+                    <button class="plan-btn" style="background:var(--bg-main); margin-top:10px;" onclick="showMainMenu()">❌ لغو</button>
+                </div>
+            `;
+        }
+
+        async function startPayment(planKey, durKey) {
+            const res = await fetch(`/api/subscription/pay/${userId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan_key: planKey, duration_key: durKey })
+            });
+            
+            if (!res.ok) {
+                showToast("خطا در شروع پرداخت", "error");
+                return;
+            }
+            
+            const data = await res.json();
+            showReceiptForm(data.request_id, data.final_price);
+        }
+
+        function showReceiptForm(requestId, finalPrice) {
+            document.getElementById('content').innerHTML = `
+                <div class="box" style="text-align:center;">
+                    <h3>💳 مرحله پرداخت</h3>
+                    <p style="margin-bottom: 15px;">مبلغ نهایی: <b style="color:var(--color-green); font-size: 20px;">${finalPrice.toLocaleString()} تومان</b></p>
+                    
+                    <p style="margin-top:20px;">💳 لطفاً مبلغ را به شماره کارت زیر واریز کنید:</p>
+                    <div class="card-info">5022291628372326</div>
+                    <p>👤 صاحب کارت: پوریا تقی زاده</p>
+                    <p style="margin-top:25px; color:var(--color-orange); font-weight:bold;">📸 بعد از واریز، اطلاعات زیر را وارد کنید:</p>
+                    
+                    <div class="form-group" style="text-align: right;">
+                        <label>💳 شماره کارت مبدا (کارتی که از آن واریز کردید):</label>
+                        <input type="text" id="senderCard" placeholder="مثلاً 6037991234567890" style="text-align: left; direction: ltr;">
+                    </div>
+                    <div class="form-group" style="text-align: right;">
+                        <label>🔢 شماره پیگیری تراکنش:</label>
+                        <input type="text" id="trackingCode" placeholder="مثلاً 123456789" style="text-align: left; direction: ltr;">
+                    </div>
+                    
+                    <button class="primary-btn" style="margin-top:20px; background:var(--color-blue);" onclick="submitReceipt(${requestId})">📤 ثبت اطلاعات پرداخت</button>
+                    <button class="plan-btn" style="background:var(--bg-main); margin-top:10px;" onclick="showMainMenu()">🔙 بازگشت</button>
+                </div>
+            `;
+        }
+
+        async function submitReceipt(requestId) {
+            const senderCard = document.getElementById('senderCard').value.trim();
+            const trackingCode = document.getElementById('trackingCode').value.trim();
+            
+            if (!senderCard || senderCard.length < 16) {
+                return showToast("لطفاً شماره کارت مبدا را به درستی وارد کنید (حداقل ۱۶ رقم).", "warning");
+            }
+            if (!trackingCode || trackingCode.length < 5) {
+                return showToast("لطفاً شماره پیگیری را وارد کنید (حداقل ۵ رقم).", "warning");
+            }
+            
+            document.getElementById('content').innerHTML = `<div class="box" style="text-align:center;">⏳ در حال ثبت اطلاعات...</div>`;
+            
+            try {
+                const res = await fetch(`/api/payment/submit-receipt/${requestId}?telegram_id=${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sender_card: senderCard, tracking_code: trackingCode })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    document.getElementById('content').innerHTML = `
+                        <div class="box" style="text-align:center;">
+                            <h3 style="color:var(--color-green);">✅ اطلاعات با موفقیت ثبت شد!</h3>
+                            <p style="margin-top:15px; line-height: 1.8; color: var(--text-main);">اطلاعات پرداخت شما برای بررسی به ادمین ارسال شد.</p>
+                            <p style="color:var(--text-muted); font-size:13px; margin-top:10px;">به محض تایید، پلن شما فعال می‌شه و می‌تونی از امکانات استفاده کنی.</p>
+                            <button class="primary-btn" style="margin-top:20px;" onclick="showMainMenu()">🔙 بازگشت به صفحه اشتراک</button>
+                        </div>
+                    `;
+                } else {
+                    showToast("❌ خطا: " + data.detail, "error");
+                }
+            } catch (e) {
+                showToast("❌ خطا در ارتباط با سرور", "error");
+            }
+        }
+
+        showMainMenu();
+    </script>
+</body>
+</html>

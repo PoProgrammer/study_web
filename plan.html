@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>برنامه‌ریزی | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <style>
+        .plan-card { background: var(--bg-card); padding: 15px; border-radius: 12px; margin-bottom: 10px; border-right: 4px solid var(--color-green); cursor: pointer; transition: all 0.2s; }
+        .plan-card:hover { background: var(--bg-card-hover); transform: translateX(-2px); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + userId">⬅️ بازگشت</button>
+        <h1>📅 برنامه‌ریزی</h1>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user');
+        if (!userId) window.location.href = '/';
+
+        async function loadMenu() {
+            document.getElementById('content').innerHTML = `
+                <div class="box">
+                    <button class="primary-btn" style="background:var(--color-green);" onclick="showNewForm()">➕ ساخت برنامه جدید</button>
+                    <button class="primary-btn" style="background:var(--bg-card-hover); margin-top:10px;" onclick="loadHistory()">📖 تاریخچه برنامه‌ها</button>
+                </div>
+            `;
+        }
+
+        function showNewForm() {
+            document.getElementById('content').innerHTML = `
+                <div class="box">
+                    <h3>برنامه جدید</h3>
+                    <div class="form-group">
+                        <label>هدف (مثلاً کنکور تجربی):</label>
+                        <input type="text" id="goal" placeholder="هدف خود را بنویسید">
+                    </div>
+                    <div class="form-group">
+                        <label>درس‌ها (با کاما جدا کنید):</label>
+                        <input type="text" id="subjects" placeholder="ریاضی، فیزیک، شیمی">
+                    </div>
+                    <div class="form-group">
+                        <label>ساعت مطالعه روزانه:</label>
+                        <input type="number" id="hours" step="0.5" placeholder="مثلاً ۴">
+                    </div>
+                    <div class="form-group">
+                        <label>روزهای تعطیل (اختیاری):</label>
+                        <input type="text" id="offDays" placeholder="مثلاً جمعه">
+                    </div>
+                    <button class="primary-btn" onclick="createPlan()">🚀 ساخت برنامه</button>
+                    <button class="secondary-btn" style="margin-top:10px; width:100%;" onclick="loadMenu()">❌ لغو</button>
+                </div>
+            `;
+        }
+
+        async function createPlan() {
+            const goal = document.getElementById('goal').value;
+            const subjects = document.getElementById('subjects').value;
+            const hours = parseFloat(document.getElementById('hours').value);
+            const offDays = document.getElementById('offDays').value;
+
+            if (!goal || !subjects || !hours) return showToast("لطفاً فیلدهای الزامی را پر کنید", "warning");
+
+            document.getElementById('content').innerHTML = `<div class="box" style="text-align:center;">⏳ در حال ساخت برنامه با هوش مصنوعی...</div>`;
+
+            try {
+                const res = await fetch(`/api/plan/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ goal, subjects, hours, off_days: offDays })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    showPlanResult(data.plan_text);
+                } else {
+                    document.getElementById('content').innerHTML = `<div class="box" style="color:red;">❌ خطا: ${data.detail}</div>`;
+                }
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="box" style="color:red;">❌ خطا در ارتباط با سرور</div>`;
+            }
+        }
+
+        function showPlanResult(text) {
+            document.getElementById('content').innerHTML = `
+                <div class="box">
+                    <h3>✅ برنامه شما آماده شد!</h3>
+                    <div style="white-space: pre-wrap; line-height: 1.8; margin-top: 15px; color: var(--text-main);">${text}</div>
+                    <button class="primary-btn" style="margin-top:20px;" onclick="loadMenu()">🔙 بازگشت به منو</button>
+                </div>
+            `;
+        }
+
+        async function loadHistory() {
+            document.getElementById('content').innerHTML = `<div class="box" style="text-align:center;">⏳ در حال بارگذاری...</div>`;
+            
+            try {
+                const res = await fetch(`/api/plan/history/${userId}`);
+                const data = await res.json();
+                
+                if (data.plans.length === 0) {
+                    document.getElementById('content').innerHTML = `<div class="box" style="text-align:center;">هنوز برنامه‌ای نساختی!</div>`;
+                    return;
+                }
+
+                let html = `<div class="box"><h3>📖 تاریخچه برنامه‌ها</h3>`;
+                data.plans.forEach(p => {
+                    html += `
+                        <div class="plan-card" onclick="viewOldPlan(${JSON.stringify(p).replace(/"/g, '&quot;')})">
+                            <b style="color: var(--color-green);">🎯 ${p.goal}</b>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">📅 ${p.date} | ⏰ ${p.hours} ساعت</div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+                document.getElementById('content').innerHTML = html;
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="box" style="color:red;">خطا در بارگذاری</div>`;
+            }
+        }
+
+        function viewOldPlan(plan) {
+            document.getElementById('content').innerHTML = `
+                <div class="box">
+                    <h3>🎯 ${plan.goal}</h3>
+                    <p style="color: var(--text-muted); font-size: 13px;">📚 ${plan.subjects} | ⏰ ${plan.hours} ساعت | 📅 ${plan.date}</p>
+                    <div style="white-space: pre-wrap; line-height: 1.8; margin-top: 15px; color: var(--text-main);">${plan.text}</div>
+                    <button class="primary-btn" style="margin-top:20px;" onclick="loadHistory()">🔙 بازگشت به تاریخچه</button>
+                </div>
+            `;
+        }
+
+        loadMenu();
+    </script>
+</body>
+</html>

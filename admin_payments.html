@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل پرداخت | اوج‌گام</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/theme.js"></script>
+    <style>
+        .back-btn { background: transparent; border: none; color: var(--text-muted); font-family: inherit; font-size: 16px; cursor: pointer; margin-bottom: 20px; padding: 10px; }
+        .payment-card { background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border-color); border-right: 4px solid var(--color-yellow); }
+        .payment-card.approved { border-right-color: var(--color-green); }
+        .payment-card.rejected { border-right-color: #ef4444; }
+        .receipt-box { background: var(--bg-input); padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px dashed var(--color-yellow); }
+        .action-row { display: flex; gap: 10px; margin-top: 15px; }
+        .action-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: bold; cursor: pointer; }
+        .btn-approve { background: var(--color-green); color: white; }
+        .btn-reject { background: #ef4444; color: white; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 10px; background: var(--bg-input); color: var(--text-muted); cursor: pointer; font-family: inherit; font-weight: bold; }
+        .tab-btn.active { background: var(--color-blue); color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/?user=' + adminId">⬅️ بازگشت</button>
+        <h1>💳 پنل پرداخت</h1>
+        <div class="tabs">
+            <button class="tab-btn active" id="tab-pending" onclick="switchTab('pending')">⏳ در انتظار</button>
+            <button class="tab-btn" id="tab-all" onclick="switchTab('all')">📋 همه</button>
+        </div>
+        <div id="content">در حال بارگذاری...</div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const adminId = urlParams.get('admin');
+        if (!adminId) window.location.href = '/';
+
+        let currentTab = 'pending';
+        const PLAN_NAMES = { bronze: "🥉 برنزی", silver: "🥈 نقره‌ای", gold: "🥇 طلایی" };
+        const DURATION_NAMES = { "1m": "۱ ماهه", "3m": "۳ ماهه", "6m": "۶ ماهه", "12m": "۱۲ ماهه" };
+        const STATUS_NAMES = { pending: "⏳ در انتظار", approved: "✅ تایید شده", rejected: "❌ رد شده" };
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-pending').classList.toggle('active', tab === 'pending');
+            document.getElementById('tab-all').classList.toggle('active', tab === 'all');
+            load();
+        }
+
+        async function load() {
+            const endpoint = currentTab === 'pending' 
+                ? `/api/admin/payments/pending?admin_id=${adminId}`
+                : `/api/admin/payments/all?admin_id=${adminId}`;
+            try {
+                const res = await fetch(endpoint);
+                const data = await res.json();
+                renderPayments(data.payments);
+            } catch (e) {
+                document.getElementById('content').innerHTML = `<div class="box" style="color:red;">خطا در بارگذاری</div>`;
+            }
+        }
+
+        function renderPayments(payments) {
+            const container = document.getElementById('content');
+            if (!payments || payments.length === 0) {
+                container.innerHTML = `<div class="box" style="text-align:center;">هیچ پرداختی وجود ندارد.</div>`;
+                return;
+            }
+
+            let html = '';
+            for (const p of payments) {
+                const status = p.status || 'pending';
+                const statusLabel = STATUS_NAMES[status] || status;
+                
+                let receiptHtml = p.sender_card || p.tracking_code ? `
+                    <div class="receipt-box">
+                        <p style="font-size:13px; color:var(--color-yellow); margin-bottom:8px; font-weight:bold;">📝 اطلاعات رسید:</p>
+                        <div style="font-size:14px; line-height:1.8;">
+                            <div>💳 کارت مبدا: <b>${p.sender_card || '---'}</b></div>
+                            <div>🔢 شماره پیگیری: <b>${p.tracking_code || '---'}</b></div>
+                        </div>
+                    </div>` : `<div class="receipt-box" style="color:var(--color-yellow); text-align:center;">⚠️ رسید ثبت نشده</div>`;
+                
+                html += `
+                    <div class="payment-card ${status}">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                            <b>👤 ${p.first_name}</b>
+                            <span style="font-size:12px; color:var(--text-muted);">${statusLabel}</span>
+                        </div>
+                        <div style="font-size:14px; line-height:2; color:var(--text-main);">
+                            <div>📱 آیدی: <b>${p.telegram_id}</b></div>
+                            <div>💎 پلن: <b>${PLAN_NAMES[p.plan_key]} — ${DURATION_NAMES[p.duration_key]}</b></div>
+                            <div>💰 مبلغ: <b style="color:var(--color-green);">${p.final_price.toLocaleString()} تومان</b></div>
+                            <div>📅 تاریخ: ${p.created_at}</div>
+                        </div>
+                        ${receiptHtml}
+                        ${status === 'pending' ? `
+                            <div class="action-row">
+                                <button class="action-btn btn-approve" onclick="approvePayment(${p.id})">✅ تایید</button>
+                                <button class="action-btn btn-reject" onclick="rejectPayment(${p.id})">❌ رد</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        }
+
+        async function approvePayment(requestId) {
+            if (!confirm("تایید می‌کنی؟")) return;
+            const res = await fetch(`/api/admin/payments/approve/${requestId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ admin_id: parseInt(adminId), note: "" })
+            });
+            if (res.ok) { showToast("✅ تایید شد", "success"); load(); }
+            else { showToast("خطا", "error"); }
+        }
+
+        async function rejectPayment(requestId) {
+            const note = prompt("دلیل رد:");
+            if (note === null) return;
+            const res = await fetch(`/api/admin/payments/reject/${requestId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ admin_id: parseInt(adminId), note: note })
+            });
+            if (res.ok) { showToast("✅ رد شد", "success"); load(); }
+            else { showToast("خطا", "error"); }
+        }
+
+        load();
+    </script>
+</body>
+</html>

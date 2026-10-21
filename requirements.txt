@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+python-multipart
+jdatetime
+python-dotenv
+groq
+httpx
