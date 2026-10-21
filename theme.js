@@ -26,7 +26,7 @@ function createParticles() {
 }
 
 // ==========================================
-// ۲. سیستم Toast (پاپ‌آپ)
+// ۲. سیستم Toast (پاپ‌آپ شیک)
 // ==========================================
 function showToast(message, type = 'info') {
     let container = document.getElementById('toastContainer');
@@ -36,13 +36,30 @@ function showToast(message, type = 'info') {
         container.id = 'toastContainer';
         document.body.appendChild(container);
     }
+
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
+    
+    // آیکون بر اساس نوع
+    let icon = 'ℹ️';
+    if (type === 'success') icon = '✅';
+    if (type === 'error') icon = '❌';
+    if (type === 'warning') icon = '⚠️';
+
     toast.innerHTML = `
-        <div class="toast-message">${message}</div>
+        <div class="toast-message">${icon} ${message}</div>
         <button class="toast-btn" onclick="this.parentElement.remove()">فهمیدم</button>
     `;
+    
     container.appendChild(toast);
+
+    // حذف خودکار بعد از 4 ثانیه (اختیاری)
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.style.animation = 'fadeOutUp 0.3s forwards';
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 4000);
 }
 
 // ==========================================
@@ -70,7 +87,6 @@ function toggleTheme() {
 function initScrollToggle() {
     let isAtBottom = false;
 
-    // ساخت دکمه اگه وجود نداشت
     if (!document.getElementById('scrollBtn')) {
         const btn = document.createElement('button');
         btn.className = 'scroll-toggle-btn';

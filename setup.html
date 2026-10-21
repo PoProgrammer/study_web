@@ -5,99 +5,143 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تکمیل پروفایل | اوج‌گام</title>
     <link rel="stylesheet" href="/static/style.css">
-    <script src="/static/theme.js"></script>
+    <!-- اتصال به فایل سیستم اعلان -->
+    <script src="/static/toast.js"></script>
     <style>
-        .brand-logo {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
+        .setup-container {
+            max-width: 400px;
+            margin: 80px auto;
+            background: var(--bg-card);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .setup-container h1 {
+            color: var(--color-teal);
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .setup-container p {
+            color: #94a3b8;
+            font-size: 14px;
             margin-bottom: 25px;
         }
-        .brand-logo svg {
-            width: 45px;
-            height: 45px;
-            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+        .custom-select {
+            width: 100%;
+            padding: 15px;
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 10px;
+            color: white;
+            font-family: inherit;
+            font-size: 16px;
+            margin-bottom: 15px;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23FFFFFF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: left 15px center;
+            background-size: 12px;
         }
-        .brand-logo h1 {
-            margin: 0;
-            font-size: 32px;
-            font-weight: 900;
-            background: linear-gradient(90deg, var(--color-blue), var(--color-teal));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .custom-select:focus {
+            border-color: var(--color-teal);
+        }
+        .custom-select option {
+            background: #1e293b;
+            color: white;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="login-section">
-            
-            <div class="brand-logo">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 3L1 9L5 11.18V17.18L12 21L19 17.18V11.18L21 10.09V17H23V9L12 3ZM18.82 9L12 12.72L5.18 9L12 5.28L18.82 9ZM17 16L12 18.72L7 16V12.27L12 15L17 12.27V16Z" fill="url(#grad1)"/>
-                    <defs>
-                        <linearGradient id="grad1" x1="1" y1="12" x2="23" y2="12" gradientUnits="userSpaceOnUse">
-                            <stop stop-color="#0ea5e9"/>
-                            <stop offset="1" stop-color="#14b8a6"/>
-                        </linearGradient>
-                    </defs>
-                </svg>
-                <h1>تکمیل پروفایل</h1>
-            </div>
-            
-            <p style="margin-bottom: 25px;">برای شخصی‌سازی تجربه‌ت، لطفاً پایه و رشته‌ت رو انتخاب کن.</p>
-            
-            <select id="grade" style="margin-bottom: 15px;">
-                <option value="">انتخاب پایه...</option>
-                <option value="دهم">دهم</option>
-                <option value="یازدهم">یازدهم</option>
-                <option value="دوازدهم">دوازدهم</option>
-            </select>
-            
-            <select id="field" style="margin-bottom: 25px;">
-                <option value="">انتخاب رشته...</option>
-                <option value="ریاضی">ریاضی</option>
-                <option value="تجربی">تجربی</option>
-                <option value="انسانی">انسانی</option>
-            </select>
-            
-            <button class="primary-btn" onclick="saveSetup()">ذخیره و ادامه</button>
-        </div>
+    <div class="setup-container">
+        <h1>🎓 تکمیل پروفایل</h1>
+        <p>برای شخصی‌سازی تجربه‌ت، لطفاً پایه و رشته‌ات رو انتخاب کن.</p>
+
+        <select id="gradeSelect" class="custom-select">
+            <option value="" disabled selected>انتخاب پایه تحصیلی</option>
+            <option value="دهم">دهم</option>
+            <option value="یازدهم">یازدهم</option>
+            <option value="دوازدهم">دوازدهم</option>
+            <option value="فارغ‌التحصیل">فارغ‌التحصیل</option>
+        </select>
+
+        <select id="fieldSelect" class="custom-select">
+            <option value="" disabled selected>انتخاب رشته تحصیلی</option>
+            <option value="ریاضی">ریاضی و فیزیک</option>
+            <option value="تجربی">علوم تجربی</option>
+            <option value="انسانی">علوم انسانی</option>
+            <option value="فنی">فنی و حرفه‌ای</option>
+        </select>
+
+        <button class="primary-btn" id="saveBtn" onclick="saveSetup()" style="margin-top: 20px; width: 100%; background: linear-gradient(135deg, var(--color-orange), var(--color-pink));">ذخیره و ادامه</button>
     </div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('user');
-        
-        if (!userId) window.location.href = '/';
+
+        if (!userId) {
+            window.location.href = '/';
+        }
 
         async function saveSetup() {
-            const grade = document.getElementById('grade').value;
-            const field = document.getElementById('field').value;
+            const grade = document.getElementById('gradeSelect').value;
+            const field = document.getElementById('fieldSelect').value;
+            const saveBtn = document.getElementById('saveBtn');
 
             if (!grade || !field) {
-                return showToast("لطفاً پایه و رشته رو انتخاب کن", "warning");
+                // جایگزینی alert با showToast
+                showToast("لطفاً هم پایه و هم رشته را انتخاب کنید.", "warning");
+                return;
             }
+
+            saveBtn.innerText = "در حال ذخیره...";
+            saveBtn.disabled = true;
 
             try {
                 const res = await fetch(`/api/user/setup/${userId}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ grade, field })
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        grade: grade,
+                        field: field
+                    })
                 });
 
+                const data = await res.json();
+
                 if (res.ok) {
-                    showToast("✅ پروفایل با موفقیت تکمیل شد!", "success");
-                    localStorage.removeItem('ojGam_user');
-                    window.location.href = `/?user=${userId}`;
+                    let savedUser = localStorage.getItem('ojGam_user');
+                    if (savedUser) {
+                        let userObj = JSON.parse(savedUser);
+                        userObj.grade = grade;
+                        userObj.field = field;
+                        localStorage.setItem('ojGam_user', JSON.stringify(userObj));
+                    }
+
+                    // جایگزینی alert با showToast
+                    showToast("اطلاعات با موفقیت ذخیره شد. در حال انتقال...", "success");
+                    
+                    setTimeout(() => {
+                        window.location.href = `/?user=${userId}`;
+                    }, 1000);
+                    
                 } else {
-                    const data = await res.json();
-                    showToast("❌ خطا: " + (data.detail || "مشکلی پیش اومد"), "error");
+                    // جایگزینی alert با showToast
+                    showToast(data.detail || "مشکلی در ذخیره اطلاعات پیش آمد", "error");
+                    saveBtn.innerText = "ذخیره و ادامه";
+                    saveBtn.disabled = false;
                 }
-            } catch (e) {
-                showToast("❌ خطا در ارتباط با سرور", "error");
+            } catch (err) {
+                console.error(err);
+                // جایگزینی alert با showToast
+                showToast("خطا در ارتباط با سرور. لطفاً اینترنت خود را بررسی کنید.", "error");
+                saveBtn.innerText = "ذخیره و ادامه";
+                saveBtn.disabled = false;
             }
         }
     </script>

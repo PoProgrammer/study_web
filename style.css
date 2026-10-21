@@ -522,6 +522,7 @@ h1 {
     position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
     z-index: 9999; display: flex; flex-direction: column; gap: 10px;
     width: 90%; max-width: 400px;
+    pointer-events: none;
 }
 
 .toast {
@@ -533,6 +534,7 @@ h1 {
     animation: slideDown 0.3s forwards;
     backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
     position: relative; overflow: hidden;
+    pointer-events: auto;
 }
 .toast::before {
     content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 5px;
@@ -541,9 +543,15 @@ h1 {
 .toast.success::before { background: var(--color-green); }
 .toast.error::before { background: #ef4444; }
 .toast.warning::before { background: var(--color-yellow); }
+
 @keyframes slideDown {
     to { transform: translateY(0); opacity: 1; }
 }
+@keyframes fadeOutUp {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(-20px); opacity: 0; }
+}
+
 .toast-message { font-size: 14px; font-weight: 500; line-height: 1.5; }
 .toast-btn {
     background: var(--bg-card-hover); color: var(--text-main); border: 1px solid var(--border-color);
