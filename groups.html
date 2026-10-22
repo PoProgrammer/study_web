@@ -80,7 +80,7 @@
             <h3 id="modalTitle">تایید</h3>
             <p id="modalText"></p>
             <div class="custom-modal-buttons">
-                <button class="primary-btn" style="background: var(--color-red);" onclick="resolveConfirm(true)">بله، مطمئنم</button>
+                <button class="primary-btn" style="background: var(--color-red); box-shadow: none;" onclick="resolveConfirm(true)">بله، مطمئنم</button>
                 <button class="secondary-btn" onclick="resolveConfirm(false)">لغو</button>
             </div>
         </div>
@@ -95,7 +95,7 @@
         let currentTab = 'create';
         let confirmResolve = null; // برای مدیریت مدال
 
-        // تابع جدید برای جایگزینی confirm
+        // تابع جدید برای جایگزینی confirm مرورگر
         function showConfirm(message) {
             return new Promise((resolve) => {
                 document.getElementById('modalText').innerText = message;
